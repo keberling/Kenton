@@ -1,4 +1,5 @@
 import { v4 as uuid } from "uuid";
+import { siteMatchRadiusM } from "./config.js";
 import { db } from "./db.js";
 import type { Photo, Site } from "./types.js";
 
@@ -95,7 +96,7 @@ class Store {
       address: input.address.trim().slice(0, 240),
       lat: input.lat,
       lng: input.lng,
-      radius_meters: input.radiusMeters ?? Number(process.env.SITE_MATCH_RADIUS_M ?? 100),
+      radius_meters: input.radiusMeters ?? siteMatchRadiusM(),
       created_at: now,
       updated_at: now,
     };

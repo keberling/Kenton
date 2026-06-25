@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { PhotoGrid } from "../components/PhotoGrid";
-import { deletePhoto, getPhotos, rematchPhoto } from "../lib/api";
+import { deletePhoto, getPhotos, rematchAllPhotos } from "../lib/api";
 import type { Photo } from "../types";
 
 type Filter = "all" | "unassigned";
@@ -8,6 +8,7 @@ type Filter = "all" | "unassigned";
 export function PhotosPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [rematching, setRematching] = useState(false);
 
   const load = useCallback(() => {
     getPhotos(filter === "unassigned" ? { unassigned: true } : undefined)
@@ -56,18 +57,26 @@ export function PhotosPage() {
 
       {filter === "unassigned" && photos.length > 0 && (
         <p className="text-sm text-stone-500">
-          Tip: photos with GPS will auto-tag when you add a job site within ~100 meters.
+          Tip: photos with GPS auto-tag when within ~500m of a geocoded job site. Geocoded
+          addresses can be offset from where photos were taken, so a wider radius helps.
           {" "}
           <button
-            className="font-medium text-orange-700 underline"
+            className="font-medium text-orange-700 underline disabled:opacity-50"
+            disabled={rematching}
             onClick={async () => {
-              for (const photo of photos) {
-                if (photo.lat != null) await rematchPhoto(photo.id);
+              setRematching(true);
+              try {
+                const result = await rematchAllPhotos();
+                if (result.matched > 0) {
+                  window.alert(`${result.matched} photo${result.matched === 1 ? "" : "s"} matched to job sites.`);
+                }
+                load();
+              } finally {
+                setRematching(false);
               }
-              load();
             }}
           >
-            Retry matching now
+            {rematching ? "Matching…" : "Retry matching now"}
           </button>
         </p>
       )}

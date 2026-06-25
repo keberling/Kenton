@@ -57,7 +57,7 @@ export function SitesPage() {
       <section className="glass h-fit rounded-3xl p-5">
         <h2 className="font-display text-xl font-semibold text-stone-900">Add job site</h2>
         <p className="mt-2 text-sm text-stone-500">
-          Enter the site address. Photos taken within ~100 meters will be tagged automatically.
+          Enter the site address. Photos taken within ~500 meters will be tagged automatically.
         </p>
 
         <form onSubmit={handleCreate} className="mt-5 space-y-3">

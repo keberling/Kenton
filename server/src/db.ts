@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "url";
+import { LEGACY_SITE_MATCH_RADIUS_M, siteMatchRadiusM } from "./config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const devDataDir = path.join(__dirname, "../data");
@@ -75,7 +76,7 @@ db.exec(`
     address TEXT NOT NULL,
     lat REAL,
     lng REAL,
-    radius_meters INTEGER NOT NULL DEFAULT 100,
+    radius_meters INTEGER NOT NULL DEFAULT 500,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -105,6 +106,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_photos_unassigned ON photos(site_id) WHERE site_id IS NULL;
   CREATE INDEX IF NOT EXISTS idx_photos_coords ON photos(lat, lng) WHERE lat IS NOT NULL;
 `);
+
+const matchRadius = siteMatchRadiusM();
+const radiusMigration = db
+  .prepare(`UPDATE sites SET radius_meters = ? WHERE radius_meters = ?`)
+  .run(matchRadius, LEGACY_SITE_MATCH_RADIUS_M);
+if (radiusMigration.changes > 0) {
+  console.log(
+    `Updated ${radiusMigration.changes} site(s) match radius ${LEGACY_SITE_MATCH_RADIUS_M}m → ${matchRadius}m`,
+  );
+}
 
 console.log(`Kenton data directory: ${dataDir}`);
 console.log(`SQLite database: ${dbPath}`);

@@ -67,3 +67,9 @@ export function deletePhoto(id: string) {
 export function rematchPhoto(id: string) {
   return fetch(`/api/photos/${id}/match`, { method: "POST" }).then((r) => parse<Photo>(r));
 }
+
+export function rematchAllPhotos() {
+  return fetch("/api/photos/rematch", { method: "POST" }).then((r) =>
+    parse<{ matched: number; matchRadiusM: number }>(r),
+  );
+}
