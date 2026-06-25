@@ -42,6 +42,7 @@ export interface Photo {
   originalName: string;
   mimeType: string;
   siteId: string | null;
+  matchHold?: boolean;
   siteName?: string | null;
   lat: number | null;
   lng: number | null;

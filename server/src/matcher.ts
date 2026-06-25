@@ -71,7 +71,7 @@ export function matchSiteToPhotos(siteId: string): number {
   const site = store.getSite(siteId);
   if (!site || site.lat == null || site.lng == null) return 0;
 
-  const candidates = store.listUnassignedPhotosWithGps();
+  const candidates = store.listAutoMatchCandidates();
   let matched = 0;
 
   for (const photo of candidates) {
@@ -86,9 +86,13 @@ export function matchSiteToPhotos(siteId: string): number {
   return matched;
 }
 
-/** Try to tag every unassigned photo that has GPS against current job sites. */
-export function rematchAllUnassignedPhotos(): number {
-  const candidates = store.listUnassignedPhotosWithGps();
+/** Try to tag unassigned photos that are eligible for auto-match. */
+export function rematchAllUnassignedPhotos(options?: { releaseHeld?: boolean }): number {
+  if (options?.releaseHeld) {
+    store.releaseAllMatchHolds();
+  }
+
+  const candidates = store.listAutoMatchCandidates();
   let matched = 0;
 
   for (const photo of candidates) {
@@ -100,6 +104,7 @@ export function rematchAllUnassignedPhotos(): number {
   return matched;
 }
 
+/** Background sync — never overrides photos the user sent back to the queue. */
 export function syncExistingPhotoMatches(): number {
-  return rematchAllUnassignedPhotos();
+  return rematchAllUnassignedPhotos({ releaseHeld: false });
 }

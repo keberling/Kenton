@@ -55,7 +55,13 @@ export function PhotoMatchActions({
   const siteOptions = useMemo(() => sortSitesForPhoto(photo, sites), [photo, sites]);
   const hasGps = photo.lat != null && photo.lng != null;
   const statusTone = photo.siteId ? "emerald" : hasGps ? "amber" : "rose";
-  const statusLabel = photo.siteId ? "ROUTED" : hasGps ? "QUEUED" : "NO GPS";
+  const statusLabel = photo.siteId
+    ? "ROUTED"
+    : photo.matchHold
+      ? "HELD"
+      : hasGps
+        ? "QUEUED"
+        : "NO GPS";
 
   const run = async (action: typeof busy, fn: () => Promise<Photo>) => {
     setBusy(action);
@@ -108,10 +114,16 @@ export function PhotoMatchActions({
             className="btn-ghost inline-flex items-center gap-1.5 rounded-xl px-3 py-2 font-mono text-[11px] text-amber-300/90 disabled:opacity-50"
           >
             <Unlink size={12} />
-            {busy === "unassign" ? "Releasing…" : "Send to queue"}
+            {busy === "unassign" ? "Holding…" : "Send to queue"}
           </button>
         )}
       </div>
+
+      {photo.matchHold && !photo.siteId && (
+        <p className="font-mono text-[10px] leading-relaxed text-amber-300/75">
+          Auto-match paused — use Retry auto-match or assign manually.
+        </p>
+      )}
 
       {sites.length > 0 ? (
         <div className="flex flex-col gap-2 sm:flex-row">

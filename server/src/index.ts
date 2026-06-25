@@ -437,7 +437,7 @@ app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20),
 });
 
 app.post("/api/photos/rematch", (_req, res) => {
-  const matched = rematchAllUnassignedPhotos();
+  const matched = rematchAllUnassignedPhotos({ releaseHeld: true });
   res.json({
     matched,
     matchRadiusM: siteMatchRadiusM(),
@@ -446,6 +446,7 @@ app.post("/api/photos/rematch", (_req, res) => {
 });
 
 app.post("/api/photos/:id/match", (req, res) => {
+  store.releaseMatchHold(req.params.id);
   const photo = matchPhotoToSite(req.params.id);
   if (!photo) {
     res.status(404).json({ error: "Photo not found" });

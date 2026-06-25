@@ -59,6 +59,8 @@ export interface Photo {
   originalName: string;
   mimeType: string;
   siteId: string | null;
+  /** When true, background auto-match skips this photo until explicitly retried. */
+  matchHold?: boolean;
   siteName?: string | null;
   lat: number | null;
   lng: number | null;

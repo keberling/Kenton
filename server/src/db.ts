@@ -154,8 +154,12 @@ ensurePhotosColumn("uploader_preferred_username", "TEXT");
 ensurePhotosColumn("uploader_job_title", "TEXT");
 ensurePhotosColumn("uploader_department", "TEXT");
 ensurePhotosColumn("uploader_office_location", "TEXT");
+ensurePhotosColumn("match_hold", "INTEGER NOT NULL DEFAULT 0");
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_uploader ON photos(uploaded_by_user_id)`);
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_photos_auto_match ON photos(match_hold) WHERE site_id IS NULL AND lat IS NOT NULL`,
+);
 
 const matchRadius = siteMatchRadiusM();
 for (const legacyRadius of LEGACY_SITE_MATCH_RADIUS_M) {

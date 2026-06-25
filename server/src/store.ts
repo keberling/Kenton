@@ -50,6 +50,7 @@ interface PhotoRow {
   uploader_job_title?: string | null;
   uploader_department?: string | null;
   uploader_office_location?: string | null;
+  match_hold?: number | null;
 }
 
 function rowToUser(row: UserRow): User {
@@ -106,6 +107,7 @@ function rowToPhoto(row: PhotoRow): Photo {
     originalName: row.original_name,
     mimeType: row.mime_type,
     siteId: row.site_id,
+    matchHold: Boolean(row.match_hold),
     siteName: row.site_name ?? null,
     lat: row.lat,
     lng: row.lng,
@@ -345,6 +347,26 @@ class Store {
     return rows.map(rowToPhoto);
   }
 
+  listAutoMatchCandidates(): Photo[] {
+    const rows = db.prepare(`
+      SELECT p.*, NULL AS site_name
+      FROM photos p
+      WHERE p.site_id IS NULL
+        AND p.lat IS NOT NULL
+        AND p.lng IS NOT NULL
+        AND COALESCE(p.match_hold, 0) = 0
+    `).all() as unknown as PhotoRow[];
+    return rows.map(rowToPhoto);
+  }
+
+  releaseMatchHold(photoId: string): void {
+    db.prepare(`UPDATE photos SET match_hold = 0 WHERE id = ?`).run(photoId);
+  }
+
+  releaseAllMatchHolds(): void {
+    db.prepare(`UPDATE photos SET match_hold = 0 WHERE site_id IS NULL`).run();
+  }
+
   getPhoto(id: string): Photo | null {
     const row = db.prepare(`
       SELECT p.*, s.name AS site_name
@@ -424,12 +446,12 @@ class Store {
   }
 
   assignPhotoToSite(photoId: string, siteId: string): Photo | null {
-    db.prepare(`UPDATE photos SET site_id = ? WHERE id = ?`).run(siteId, photoId);
+    db.prepare(`UPDATE photos SET site_id = ?, match_hold = 0 WHERE id = ?`).run(siteId, photoId);
     return this.getPhoto(photoId);
   }
 
   unassignPhoto(photoId: string): Photo | null {
-    db.prepare(`UPDATE photos SET site_id = NULL WHERE id = ?`).run(photoId);
+    db.prepare(`UPDATE photos SET site_id = NULL, match_hold = 1 WHERE id = ?`).run(photoId);
     return this.getPhoto(photoId);
   }
 
