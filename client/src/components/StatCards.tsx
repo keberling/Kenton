@@ -25,7 +25,7 @@ export function StatCards({ stats }: StatCardsProps) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06 }}
-            className="panel panel-interactive window rounded-2xl p-4"
+            className="panel window rounded-2xl p-4"
           >
             <div className="flex items-start justify-between">
               <p className="hud-label">{item.label}</p>

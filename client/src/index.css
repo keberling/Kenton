@@ -176,7 +176,6 @@ body {
     inset 1px 1px 0 var(--neu-highlight-soft),
     0 0 0 1px var(--accent-glow);
   transform: translateY(-3px);
-  animation: lift-shake 0.52s ease-in-out;
 }
 
 .window {
@@ -185,8 +184,9 @@ body {
     transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.window:hover {
-  animation: window-wobble 0.55s ease-in-out;
+/* Shake is reserved for clickable buttons only */
+button:hover:not(:disabled) {
+  animation: micro-shake 0.42s ease-in-out;
 }
 
 .hover-shake:hover {
@@ -221,9 +221,8 @@ body {
   transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-.neu-raised-sm:hover {
+button.neu-raised-sm:hover:not(:disabled) {
   transform: translateY(-1px);
-  animation: micro-shake 0.4s ease-in-out;
 }
 
 .glass-badge {
@@ -482,9 +481,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .panel-interactive:hover,
-  .window:hover,
   .hover-shake:hover,
-  .neu-raised-sm:hover,
+  button:hover:not(:disabled),
   .btn-primary:hover:not(:disabled),
   .btn-ghost:hover:not(:disabled) {
     animation: none;

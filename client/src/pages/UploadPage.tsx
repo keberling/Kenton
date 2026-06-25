@@ -72,7 +72,7 @@ export function UploadPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className={`panel panel-interactive window relative overflow-hidden rounded-2xl border-2 border-dashed p-8 text-center sm:p-12 ${
+        className={`panel window relative overflow-hidden rounded-2xl border-2 border-dashed p-8 text-center sm:p-12 ${
           dragOver ? "border-cyan-400/40" : "border-white/[0.08]"
         }`}
         onDragOver={(e) => {

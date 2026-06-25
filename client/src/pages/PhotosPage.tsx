@@ -45,7 +45,7 @@ export function PhotosPage() {
                   className={`rounded-lg px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider transition ${
                     filter === value
                       ? "neu-raised-sm text-cyan-300/95"
-                      : "text-white/38 hover-shake hover:text-white/68"
+                      : "text-white/38 hover:text-white/68"
                   }`}
                 >
                   {value === "all" ? "All assets" : "Queued"}

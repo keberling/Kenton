@@ -124,7 +124,7 @@ export function SitesPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="panel panel-interactive window overflow-hidden rounded-2xl"
+                className="panel window overflow-hidden rounded-2xl"
               >
                 <button
                   type="button"

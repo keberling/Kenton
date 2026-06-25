@@ -85,7 +85,7 @@ export function SiteGeocodeInfo({ site, detailed = false }: SiteGeocodeInfoProps
           <p className="hud-label">Closest queue</p>
           <ul className="mt-2 space-y-2">
             {site.nearbyUnassigned.map((photo) => (
-              <li key={photo.photoId} className="neu-raised-sm hover-shake rounded-lg px-3 py-2">
+              <li key={photo.photoId} className="neu-inset rounded-lg px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="truncate text-sm text-white/80">{photo.originalName}</span>
                   <span className={`font-mono text-xs ${photo.withinRadius ? "text-emerald-400" : "text-amber-400"}`}>

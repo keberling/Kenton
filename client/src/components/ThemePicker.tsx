@@ -15,7 +15,7 @@ export function ThemePicker({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="neu-raised-sm hover-shake flex h-9 w-9 items-center justify-center rounded-lg"
+          className="neu-raised-sm flex h-9 w-9 items-center justify-center rounded-lg"
           aria-label="Color themes"
         >
           <Palette size={16} className="t-accent" />
@@ -40,7 +40,7 @@ export function ThemePicker({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="hover-shake flex w-full items-center gap-2 text-left"
+        className="flex w-full items-center gap-2 text-left"
       >
         <Palette size={14} className="t-accent shrink-0" />
         <div className="min-w-0 flex-1">
@@ -92,7 +92,7 @@ function ThemePanel({
               key={theme.id}
               type="button"
               onClick={() => setThemeId(theme.id)}
-              className={`hover-shake w-full rounded-lg p-2.5 text-left transition ${
+              className={`w-full rounded-lg p-2.5 text-left transition ${
                 selected ? "neu-raised-sm ring-1 ring-[color:var(--accent-glow)]" : "hover:bg-[color:var(--neu-highlight-soft)]"
               }`}
             >

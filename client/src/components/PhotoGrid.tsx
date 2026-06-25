@@ -62,7 +62,7 @@ export function PhotoGrid({
           initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.45 }}
-          className={`panel panel-interactive photo-tile group relative ${
+          className={`panel photo-tile group relative ${
             layout === "masonry" ? "masonry-item" : bentoClass(index, photos.length)
           }`}
         >

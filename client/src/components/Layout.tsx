@@ -65,7 +65,7 @@ export function Layout() {
                   `group flex items-center gap-3 rounded-xl px-3 py-3 transition ${
                     isActive
                       ? "neu-inset t-accent"
-                      : "t-subtle hover-shake hover-lift hover:t-fg"
+                      : "t-subtle hover:t-fg"
                   }`
                 }
               >
@@ -101,7 +101,7 @@ export function Layout() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="neu-inset hover-shake rounded-xl px-2.5 py-2 transition"
+                    className="neu-inset rounded-xl px-2.5 py-2 transition"
                   >
                     <p className="font-mono text-[9px] uppercase tracking-wider t-faint">{item.label}</p>
                     <p className="font-display text-lg font-bold tabular-nums t-fg">{item.value}</p>
@@ -157,7 +157,7 @@ export function Layout() {
             end={to === "/"}
             className={({ isActive }) =>
               `relative flex min-h-14 flex-col items-center justify-center rounded-xl px-2 py-2 text-[10px] font-medium transition ${
-                isActive ? "neu-inset t-accent" : "t-subtle hover-shake"
+                isActive ? "neu-inset t-accent" : "t-subtle"
               }`
             }
           >
