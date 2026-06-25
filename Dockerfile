@@ -35,6 +35,7 @@ RUN mkdir -p /data/uploads && chown -R app:app /data /app
 
 USER app
 
+# Coolify: bind a persistent volume to /data in the Storages tab
 VOLUME ["/data"]
 
 EXPOSE 3000

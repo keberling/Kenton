@@ -5,7 +5,7 @@ import { createServer } from "http";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
-import { dataDir } from "./db.js";
+import { dataDir, dbPath } from "./db.js";
 import { extractPhotoMeta } from "./exif.js";
 import { geocodeAddress } from "./geocode.js";
 import { matchPhotoToSite, matchSiteToPhotos } from "./matcher.js";
@@ -48,7 +48,22 @@ const upload = multer({
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  const stats = store.stats();
+  const dbExists = fs.existsSync(dbPath);
+  const uploadsDir = path.join(dataDir, "uploads");
+  const uploadsExist = fs.existsSync(uploadsDir);
+
+  res.json({
+    ok: true,
+    dataDir,
+    dbPath,
+    dbExists,
+    uploadsDir,
+    uploadsExist,
+    persistent: isProduction ? dataDir === "/data" : true,
+    sites: stats.sites,
+    photos: stats.totalPhotos,
+  });
 });
 
 app.get("/api/stats", (_req, res) => {

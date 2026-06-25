@@ -56,7 +56,22 @@ docker compose up --build
 1. Create a **Dockerfile** application pointing at `keberling/Kenton`
 2. Expose port **3000**
 3. Set `CLIENT_ORIGIN` to your public URL
-4. Add a persistent volume mounted at `/data`
+4. **Add persistent storage** (required — without this, sites and photos are wiped on every redeploy):
+   - Go to **Storages** → **Add Storage**
+   - Mount path: **`/data`** (exactly this path)
+   - Do **not** mount `/app/server/data`
+   - Do **not** leave `DATA_DIR` blank or set it to another path unless you mount that same path
 5. Deploy
 
-Health check: `GET /api/health`
+Verify persistence after deploy: `GET /api/health` should return:
+
+```json
+{
+  "ok": true,
+  "dataDir": "/data",
+  "persistent": true,
+  "sites": 1
+}
+```
+
+If `persistent` is `false` or `dataDir` is not `/data`, your volume is not mounted correctly.
