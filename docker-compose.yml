@@ -1,0 +1,16 @@
+services:
+  kenton:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATA_DIR=/data
+      - CLIENT_ORIGIN=http://localhost:3000
+      - SITE_MATCH_RADIUS_M=100
+    volumes:
+      - kenton-data:/data
+
+volumes:
+  kenton-data:

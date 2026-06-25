@@ -1,0 +1,137 @@
+import { motion } from "framer-motion";
+import { MapPin, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { createSite, deleteSite, getSites } from "../lib/api";
+import type { Site } from "../types";
+
+export function SitesPage() {
+  const [sites, setSites] = useState<Site[]>([]);
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    getSites().then(setSites).catch(() => setError("Could not load sites"));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !address.trim()) return;
+
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await createSite({ name: name.trim(), address: address.trim() });
+      setName("");
+      setAddress("");
+      setMessage(
+        result.geocoded
+          ? `Site created. ${result.matchedPhotos} nearby photo${result.matchedPhotos === 1 ? "" : "s"} auto-tagged.`
+          : "Site created, but the address could not be geocoded. Photos won't auto-match until coordinates are available.",
+      );
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create site");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this job site? Photos will return to the general pool.")) return;
+    await deleteSite(id);
+    load();
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <section className="glass h-fit rounded-3xl p-5">
+        <h2 className="font-display text-xl font-semibold text-stone-900">Add job site</h2>
+        <p className="mt-2 text-sm text-stone-500">
+          Enter the site address. Photos taken within ~100 meters will be tagged automatically.
+        </p>
+
+        <form onSubmit={handleCreate} className="mt-5 space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Site name</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Riverside HVAC install"
+              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-400"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Address</span>
+            <input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="123 Main St, Portland, OR"
+              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-400"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+          >
+            <Plus size={16} />
+            {saving ? "Creating…" : "Create site"}
+          </button>
+        </form>
+
+        {message && <p className="mt-4 text-sm text-emerald-700">{message}</p>}
+        {error && <p className="mt-4 text-sm text-rose-700">{error}</p>}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-semibold text-stone-900">Job sites</h2>
+        {sites.length === 0 ? (
+          <div className="glass rounded-3xl px-6 py-16 text-center text-stone-500">
+            No job sites yet. Add one to start auto-tagging nearby photos.
+          </div>
+        ) : (
+          sites.map((site, index) => (
+            <motion.div
+              key={site.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.04 }}
+              className="glass flex items-center gap-4 rounded-2xl px-4 py-4"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+                <MapPin size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Link to={`/sites/${site.id}`} className="font-display text-lg font-semibold text-stone-900 hover:text-orange-700">
+                  {site.name}
+                </Link>
+                <p className="truncate text-sm text-stone-500">{site.address}</p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {site.photoCount ?? 0} photos · {site.radiusMeters}m match radius
+                  {site.lat != null ? " · geocoded" : " · not geocoded"}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDelete(site.id)}
+                className="rounded-xl p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                aria-label="Delete site"
+              >
+                <Trash2 size={16} />
+              </button>
+            </motion.div>
+          ))
+        )}
+      </section>
+    </div>
+  );
+}
