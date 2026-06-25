@@ -9,6 +9,8 @@ Interactive upload site for field techs to drop project photos. GPS metadata fro
 3. **Auto-match on upload** — if a job site already exists within 10 miles, the photo is tagged immediately.
 4. **Auto-match on site create** — when a new job site address is added, all nearby unassigned photos are tagged retroactively.
 5. **Retroactive matching** — on server startup and when loading photos/sites, already-uploaded unassigned photos with GPS are matched against all geocoded job sites.
+6. **Deployment recommendations** — when uploads cannot match a site, Kenton suggests creating one and pre-fills the address from GPS (reverse geocode).
+7. **Live address search** — deployment registration uses Photon + OpenStreetMap autocomplete (no API key); full geocode on save uses the same stack as before.
 
 ## Stack
 

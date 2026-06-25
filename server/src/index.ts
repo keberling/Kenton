@@ -8,7 +8,9 @@ import { fileURLToPath } from "url";
 import { siteMatchRadiusM } from "./config.js";
 import { dataDir, dbPath } from "./db.js";
 import { extractPhotoMeta } from "./exif.js";
+import { reverseGeocodeAddress, searchAddresses } from "./addressSearch.js";
 import { geocodeAddress } from "./geocode.js";
+import { buildDeploymentRecommendations } from "./siteRecommendations.js";
 import {
   matchPhotoToSite,
   matchSiteToPhotos,
@@ -119,6 +121,54 @@ app.get("/api/health", (_req, res) => {
 app.get("/api/stats", (_req, res) => {
   syncExistingPhotoMatches();
   res.json(store.stats());
+});
+
+app.get("/api/addresses/search", async (req, res) => {
+  const q = typeof req.query.q === "string" ? req.query.q : "";
+  const limit = Number(req.query.limit) || 6;
+
+  if (q.trim().length < 3) {
+    res.json({ suggestions: [] });
+    return;
+  }
+
+  try {
+    const suggestions = await searchAddresses(q, limit);
+    res.json({ suggestions });
+  } catch {
+    res.status(502).json({ error: "Address search unavailable" });
+  }
+});
+
+app.get("/api/addresses/reverse", async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    res.status(400).json({ error: "lat and lng are required" });
+    return;
+  }
+
+  try {
+    const suggestion = await reverseGeocodeAddress(lat, lng);
+    if (!suggestion) {
+      res.status(404).json({ error: "No address found for coordinates" });
+      return;
+    }
+    res.json({ suggestion });
+  } catch {
+    res.status(502).json({ error: "Reverse geocode unavailable" });
+  }
+});
+
+app.get("/api/recommendations/deployments", async (_req, res) => {
+  syncExistingPhotoMatches();
+  try {
+    const recommendations = await buildDeploymentRecommendations();
+    res.json({ recommendations });
+  } catch {
+    res.status(502).json({ error: "Could not build deployment recommendations" });
+  }
 });
 
 app.get("/api/sites", (_req, res) => {

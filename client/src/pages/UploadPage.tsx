@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { Camera, Loader2, Upload, Zap } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
+import { DeploymentRecommendationPanel } from "../components/DeploymentRecommendationPanel";
 import { UploadPipeline } from "../components/UploadPipeline";
 import { useAuth } from "../lib/AuthContext";
 import { useIngest } from "../lib/IngestContext";
@@ -32,6 +33,21 @@ export function UploadPage() {
 
   const totalQueuedBytes = queue.reduce((s, i) => s + i.file.size, 0);
   const showPipeline = queue.length > 0;
+  const completedPhotos = useMemo(
+    () => queue.filter((item) => item.phase === "done" && item.result).map((item) => item.result!),
+    [queue],
+  );
+  const needsDeployment = useMemo(
+    () =>
+      !uploading &&
+      completedPhotos.some(
+        (photo) =>
+          photo.matchStatus === "queued" ||
+          photo.matchStatus === "no_fix" ||
+          (!photo.siteId && photo.lat != null),
+      ),
+    [completedPhotos, uploading],
+  );
 
   return (
     <div className="space-y-8">
@@ -165,6 +181,14 @@ export function UploadPage() {
           items={queue}
           sessionStartedAt={sessionStartedAt}
           active={uploading}
+        />
+      )}
+
+      {needsDeployment && (
+        <DeploymentRecommendationPanel
+          photos={completedPhotos}
+          title="No deployment matched these captures"
+          onCreated={() => clearError()}
         />
       )}
     </div>

@@ -58,6 +58,26 @@ export interface Photo {
   uploader?: PhotoUploader | null;
 }
 
+export interface AddressSuggestion {
+  id: string;
+  label: string;
+  shortLabel: string;
+  lat: number;
+  lng: number;
+  source: "photon" | "nominatim";
+  kind?: string;
+}
+
+export interface DeploymentRecommendation {
+  id: string;
+  photoCount: number;
+  photoIds: string[];
+  centroidLat: number;
+  centroidLng: number;
+  suggestedAddress: string | null;
+  suggestedAddressSource: string | null;
+}
+
 export interface Stats {
   totalPhotos: number;
   unassignedPhotos: number;

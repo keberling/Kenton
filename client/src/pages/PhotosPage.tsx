@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { useCallback, useState } from "react";
+import { DeploymentRecommendationPanel } from "../components/DeploymentRecommendationPanel";
 import { PageHeader } from "../components/PageHeader";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
@@ -55,6 +56,16 @@ export function PhotosPage() {
           </div>
         }
       />
+
+      {filter === "unassigned" && photos.length > 0 && (
+        <DeploymentRecommendationPanel
+          photos={photos.map((photo) => ({
+            ...photo,
+            matchStatus: photo.lat != null ? "queued" : "no_fix",
+          }))}
+          title="Queued assets need a deployment"
+        />
+      )}
 
       <motion.div
         key={filter}

@@ -1,4 +1,4 @@
-import type { Photo, Site, Stats } from "../types";
+import type { AddressSuggestion, DeploymentRecommendation, Photo, Site, Stats } from "../types";
 
 async function parse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -6,6 +6,26 @@ async function parse<T>(res: Response): Promise<T> {
     throw new Error(body.error ?? `Request failed (${res.status})`);
   }
   return res.json() as Promise<T>;
+}
+
+export function searchAddresses(query: string, limit = 6) {
+  const params = new URLSearchParams({ q: query, limit: String(limit) });
+  return fetch(`/api/addresses/search?${params}`).then((r) =>
+    parse<{ suggestions: AddressSuggestion[] }>(r),
+  );
+}
+
+export function reverseGeocodeAddress(lat: number, lng: number) {
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+  return fetch(`/api/addresses/reverse?${params}`).then((r) =>
+    parse<{ suggestion: AddressSuggestion }>(r),
+  );
+}
+
+export function getDeploymentRecommendations() {
+  return fetch("/api/recommendations/deployments").then((r) =>
+    parse<{ recommendations: DeploymentRecommendation[] }>(r),
+  );
 }
 
 export function getStats() {

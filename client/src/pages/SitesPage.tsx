@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, Images, MapPinned, Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { PageHeader } from "../components/PageHeader";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
@@ -90,12 +91,14 @@ export function SitesPage() {
             </label>
             <label className="block">
               <span className="hud-label mb-1.5 block">Address</span>
-              <input
+              <AddressAutocomplete
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="123 Main St, Portland, OR"
-                className="input-field w-full rounded-xl px-4 py-3 text-sm"
+                onChange={setAddress}
+                placeholder="Search street, city, state…"
               />
+              <p className="mt-1.5 font-mono text-[10px] t-faint">
+                Live search · Photon + OpenStreetMap · no API key
+              </p>
             </label>
             <button
               type="submit"
