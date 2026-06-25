@@ -5,7 +5,7 @@ import { createServer } from "http";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
-import { siteMatchRadiusM } from "./config.js";
+import { siteMatchRadiusM, siteSoftMatchCushionM } from "./config.js";
 import { dataDir, dbPath } from "./db.js";
 import { ingestUploadedFile } from "./ingestPhoto.js";
 import { reverseGeocodeAddress, searchAddresses } from "./addressSearch.js";
@@ -123,6 +123,7 @@ app.get("/api/health", (_req, res) => {
     sites: stats.sites,
     photos: stats.totalPhotos,
     matchRadiusM: siteMatchRadiusM(),
+    softMatchCushionM: siteSoftMatchCushionM(),
   });
 });
 
@@ -437,7 +438,11 @@ app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20),
 
 app.post("/api/photos/rematch", (_req, res) => {
   const matched = rematchAllUnassignedPhotos();
-  res.json({ matched, matchRadiusM: siteMatchRadiusM() });
+  res.json({
+    matched,
+    matchRadiusM: siteMatchRadiusM(),
+    softMatchCushionM: siteSoftMatchCushionM(),
+  });
 });
 
 app.post("/api/photos/:id/match", (req, res) => {

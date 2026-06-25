@@ -8,7 +8,7 @@ import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { TechMeta, TechMetaRow } from "../components/TechMeta";
 import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
 import { deletePhoto, getPhotos, getSite, regeocodeSite } from "../lib/api";
-import { formatCoords, shortId } from "../lib/format";
+import { formatCoords, formatRadiusMeters, shortId } from "../lib/format";
 import type { Photo, Site } from "../types";
 
 export function SiteDetailPage() {
@@ -110,7 +110,7 @@ export function SiteDetailPage() {
                     accent={site.lat != null ? "cyan" : "amber"}
                   />
                   <TechMeta label="Geocoder" value={site.geocodeSource ?? "—"} accent="muted" />
-                  <TechMeta label="Radius" value={`${(site.radiusMeters / 1609.344).toFixed(1)} mi`} accent="muted" />
+                  <TechMeta label="Radius" value={formatRadiusMeters(site.radiusMeters)} accent="muted" />
                 </TechMetaRow>
               </div>
             </div>

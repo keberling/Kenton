@@ -1,12 +1,12 @@
 # Kenton — Job Site Photo Manager
 
-Interactive upload site for field techs to drop project photos. GPS metadata from each image is extracted automatically, and photos are matched to job sites when they're within ~10 miles of the geocoded site address.
+Interactive upload site for field techs to drop project photos. GPS metadata from each image is extracted automatically, and photos are matched to job sites within ~100 m of the geocoded address — or soft-matched to the nearest site when no other deployment is within ~1 mile of the capture location.
 
 ## How it works
 
 1. **Upload anytime** — techs upload photos to a general pool from their phone or desktop.
 2. **GPS tagging** — EXIF location data is read from each photo on upload.
-3. **Auto-match on upload** — if a job site already exists within 10 miles, the photo is tagged immediately.
+3. **Auto-match on upload** — strict match within ~100 m, or soft match to the nearest site when captures are isolated from other deployments (~1 mi cushion).
 4. **Auto-match on site create** — when a new job site address is added, all nearby unassigned photos are tagged retroactively.
 5. **Retroactive matching** — on server startup and when loading photos/sites, already-uploaded unassigned photos with GPS are matched against all geocoded job sites.
 6. **Deployment recommendations** — when uploads cannot match a site, Kenton suggests creating one and pre-fills the address from GPS (reverse geocode).
@@ -44,7 +44,8 @@ npm run dev
 | `PORT` | `3000` (prod) / `3001` (dev) | HTTP port |
 | `DATA_DIR` | `./server/data` | SQLite + photo storage |
 | `CLIENT_ORIGIN` | same-origin in prod | CORS origin for Coolify |
-| `SITE_MATCH_RADIUS_M` | `16093` (~10 mi) | GPS match radius in meters (existing sites at older defaults are upgraded on startup) |
+| `SITE_MATCH_RADIUS_M` | `100` | Strict GPS match radius in meters (existing sites at older defaults are upgraded on startup) |
+| `SITE_SOFT_MATCH_CUSHION_M` | `1609` (~1 mi) | Soft-match to nearest site when no other deployment is within this distance of the photo |
 | `NOMINATIM_EMAIL` | — | Contact email for Nominatim (recommended in production) |
 | `AZURE_CLIENT_ID` | — | Microsoft Entra app (client) ID — enables SSO when set with tenant |
 | `AZURE_TENANT_ID` | — | Microsoft Entra directory (tenant) ID |

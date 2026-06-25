@@ -2,7 +2,12 @@ import fs from "fs";
 import path from "path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "url";
-import { LEGACY_SITE_MATCH_RADIUS_M, METERS_PER_MILE, siteMatchRadiusM } from "./config.js";
+import {
+  LEGACY_SITE_MATCH_RADIUS_M,
+  METERS_PER_MILE,
+  siteMatchRadiusM,
+  siteSoftMatchCushionM,
+} from "./config.js";
 
 function ensureTableColumn(table: string, name: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
@@ -91,7 +96,7 @@ db.exec(`
     address TEXT NOT NULL,
     lat REAL,
     lng REAL,
-    radius_meters INTEGER NOT NULL DEFAULT 16093,
+    radius_meters INTEGER NOT NULL DEFAULT 100,
     geocode_source TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -164,7 +169,11 @@ for (const legacyRadius of LEGACY_SITE_MATCH_RADIUS_M) {
   }
 }
 
-console.log(`Site match radius: ${matchRadius}m (${(matchRadius / METERS_PER_MILE).toFixed(1)} mi)`);
+const cushionM = siteSoftMatchCushionM();
+console.log(
+  `Site match radius: ${matchRadius}m (${(matchRadius / METERS_PER_MILE).toFixed(2)} mi); ` +
+    `soft cushion: ${cushionM}m (${(cushionM / METERS_PER_MILE).toFixed(1)} mi)`,
+);
 
 console.log(`Kenton data directory: ${dataDir}`);
 console.log(`SQLite database: ${dbPath}`);

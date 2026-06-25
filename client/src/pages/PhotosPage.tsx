@@ -102,7 +102,7 @@ export function PhotosPage() {
 
       {filter === "unassigned" && photos.length > 0 && (
         <p className="font-mono text-xs text-white/35">
-          Auto-matching runs on every sync.{" "}
+          Strict match ~100 m; soft match to nearest site when isolated (~1 mi cushion). Rescan on sync.{" "}
           <button
             className="inline-flex items-center gap-1 text-cyan-400 transition hover:text-cyan-300 disabled:opacity-50"
             disabled={rematching}

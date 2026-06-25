@@ -1,35 +1,70 @@
-import { haversineMeters, withinRadius } from "./geo.js";
+import { siteSoftMatchCushionM } from "./config.js";
+import { haversineMeters } from "./geo.js";
 import { store } from "./store.js";
 import type { Photo, Site } from "./types.js";
+
+export type MatchKind = "strict" | "soft";
+
+export interface SiteMatchResult {
+  site: Site;
+  kind: MatchKind;
+  distanceM: number;
+}
+
+function rankedSites(lat: number, lng: number, sites: Site[]) {
+  return sites
+    .filter((site) => site.lat != null && site.lng != null)
+    .map((site) => ({
+      site,
+      distanceM: haversineMeters(lat, lng, site.lat!, site.lng!),
+    }))
+    .sort((a, b) => a.distanceM - b.distanceM);
+}
+
+export function resolvePhotoSiteMatch(
+  lat: number,
+  lng: number,
+  sites: Site[] = store.listSites(),
+): SiteMatchResult | null {
+  const ranked = rankedSites(lat, lng, sites);
+  if (!ranked.length) return null;
+
+  const cushionM = siteSoftMatchCushionM();
+
+  const withinStrict = ranked.filter((entry) => entry.distanceM <= entry.site.radiusMeters);
+  if (withinStrict.length) {
+    const best = withinStrict[0];
+    return { site: best.site, kind: "strict", distanceM: best.distanceM };
+  }
+
+  const nearest = ranked[0];
+  const competingWithinCushion = ranked
+    .slice(1)
+    .filter((entry) => entry.distanceM <= cushionM);
+
+  if (competingWithinCushion.length === 0) {
+    return { site: nearest.site, kind: "soft", distanceM: nearest.distanceM };
+  }
+
+  return null;
+}
 
 export function findMatchingSite(
   lat: number,
   lng: number,
   sites: Site[] = store.listSites(),
 ): Site | null {
-  let best: { site: Site; distance: number } | null = null;
-
-  for (const site of sites) {
-    if (site.lat == null || site.lng == null) continue;
-    if (!withinRadius(lat, lng, site.lat, site.lng, site.radiusMeters)) continue;
-
-    const distance = haversineMeters(lat, lng, site.lat, site.lng);
-    if (!best || distance < best.distance) {
-      best = { site, distance };
-    }
-  }
-
-  return best?.site ?? null;
+  return resolvePhotoSiteMatch(lat, lng, sites)?.site ?? null;
 }
 
 export function matchPhotoToSite(photoId: string): Photo | null {
   const photo = store.getPhoto(photoId);
   if (!photo || photo.lat == null || photo.lng == null) return photo;
 
-  const site = findMatchingSite(photo.lat, photo.lng);
-  if (!site) return photo;
+  const match = resolvePhotoSiteMatch(photo.lat, photo.lng);
+  if (!match) return photo;
 
-  return store.assignPhotoToSite(photoId, site.id);
+  return store.assignPhotoToSite(photoId, match.site.id);
 }
 
 export function matchSiteToPhotos(siteId: string): number {
@@ -41,9 +76,11 @@ export function matchSiteToPhotos(siteId: string): number {
 
   for (const photo of candidates) {
     if (photo.lat == null || photo.lng == null) continue;
-    if (!withinRadius(photo.lat, photo.lng, site.lat, site.lng, site.radiusMeters)) continue;
-    store.assignPhotoToSite(photo.id, site.id);
-    matched++;
+    const match = resolvePhotoSiteMatch(photo.lat, photo.lng);
+    if (match?.site.id === siteId) {
+      store.assignPhotoToSite(photo.id, siteId);
+      matched++;
+    }
   }
 
   return matched;

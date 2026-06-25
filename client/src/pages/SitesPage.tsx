@@ -76,7 +76,8 @@ export function SitesPage() {
           <h3 className="font-display mt-1 text-xl font-bold text-white">Register site</h3>
           <p className="mt-2 text-sm text-white/40">
             Assets with GPS within{" "}
-            {defaultRadius ? formatRadiusMeters(defaultRadius) : "~10 mi"} auto-route here.
+            {defaultRadius ? formatRadiusMeters(defaultRadius) : "~100 m"} auto-route here
+            (or nearest site when no other deployment is within ~1 mi).
           </p>
 
           <form onSubmit={handleCreate} className="mt-5 space-y-3">
