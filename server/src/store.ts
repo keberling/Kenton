@@ -455,6 +455,23 @@ class Store {
     return this.getPhoto(photoId);
   }
 
+  /** Unassign without pausing auto-match — used when correcting bad routes. */
+  unassignForRescan(photoId: string): Photo | null {
+    db.prepare(`UPDATE photos SET site_id = NULL, match_hold = 0 WHERE id = ?`).run(photoId);
+    return this.getPhoto(photoId);
+  }
+
+  listPhotosWithGps(): Photo[] {
+    const rows = db.prepare(`
+      SELECT p.*, s.name AS site_name
+      FROM photos p
+      LEFT JOIN sites s ON s.id = p.site_id
+      WHERE p.lat IS NOT NULL AND p.lng IS NOT NULL
+      ORDER BY COALESCE(p.taken_at, p.uploaded_at) DESC
+    `).all() as unknown as PhotoRow[];
+    return rows.map(rowToPhoto);
+  }
+
   deletePhoto(id: string): { filename: string } | null {
     const row = db.prepare(`SELECT filename FROM photos WHERE id = ?`).get(id) as { filename: string } | undefined;
     if (!row) return null;

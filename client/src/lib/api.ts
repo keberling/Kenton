@@ -94,9 +94,20 @@ export function rematchPhoto(id: string) {
   return fetch(`/api/photos/${id}/match`, { method: "POST" }).then((r) => parse<Photo>(r));
 }
 
+export interface RescanMatchesResult {
+  scanned: number;
+  matched: number;
+  reassigned: number;
+  unassigned: number;
+  unchanged: number;
+  matchRadiusM: number;
+  softMatchCushionM: number;
+  maxMatchDistanceM: number;
+}
+
 export function rematchAllPhotos() {
   return fetch("/api/photos/rematch", { method: "POST" }).then((r) =>
-    parse<{ matched: number; matchRadiusM: number; softMatchCushionM: number }>(r),
+    parse<RescanMatchesResult>(r),
   );
 }
 

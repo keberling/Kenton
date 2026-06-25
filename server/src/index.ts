@@ -14,7 +14,7 @@ import { buildDeploymentRecommendations } from "./siteRecommendations.js";
 import {
   matchPhotoToSite,
   rematchAfterSiteChange,
-  rematchAllUnassignedPhotos,
+  rescanAllPhotoMatches,
   syncExistingPhotoMatches,
 } from "./matcher.js";
 import { attachAuth, mergeProfilePatch, requireAuthForUpload } from "./auth/middleware.js";
@@ -438,9 +438,9 @@ app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20),
 });
 
 app.post("/api/photos/rematch", (_req, res) => {
-  const matched = rematchAllUnassignedPhotos({ releaseHeld: true });
+  const result = rescanAllPhotoMatches({ releaseHeld: true });
   res.json({
-    matched,
+    ...result,
     matchRadiusM: siteMatchRadiusM(),
     softMatchCushionM: siteSoftMatchCushionM(),
     maxMatchDistanceM: siteMaxMatchDistanceM(),

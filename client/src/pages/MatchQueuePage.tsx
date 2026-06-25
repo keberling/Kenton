@@ -90,8 +90,8 @@ export function MatchQueuePage() {
           {[
             {
               step: "01",
-              title: "Rescan matches",
-              body: "Strict ~100 m, soft to nearest site within ~2 mi when isolated (~1 mi cushion).",
+              title: "Rescan all",
+              body: "Re-checks every photo — reroutes to the nearest site within ~2 mi or sends to queue.",
             },
             {
               step: "02",
