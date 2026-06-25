@@ -1,4 +1,4 @@
-import { siteSoftMatchCushionM } from "./config.js";
+import { siteMaxMatchDistanceM, siteSoftMatchCushionM } from "./config.js";
 import { haversineMeters } from "./geo.js";
 import { store } from "./store.js";
 import type { Photo, Site } from "./types.js";
@@ -29,16 +29,21 @@ export function resolvePhotoSiteMatch(
   const ranked = rankedSites(lat, lng, sites);
   if (!ranked.length) return null;
 
+  const maxMatchM = siteMaxMatchDistanceM();
   const cushionM = siteSoftMatchCushionM();
+  const withinMax = ranked.filter((entry) => entry.distanceM <= maxMatchM);
+  if (!withinMax.length) return null;
 
-  const withinStrict = ranked.filter((entry) => entry.distanceM <= entry.site.radiusMeters);
+  const withinStrict = withinMax.filter(
+    (entry) => entry.distanceM <= entry.site.radiusMeters,
+  );
   if (withinStrict.length) {
     const best = withinStrict[0];
     return { site: best.site, kind: "strict", distanceM: best.distanceM };
   }
 
-  const nearest = ranked[0];
-  const competingWithinCushion = ranked
+  const nearest = withinMax[0];
+  const competingWithinCushion = withinMax
     .slice(1)
     .filter((entry) => entry.distanceM <= cushionM);
 
@@ -67,9 +72,28 @@ export function matchPhotoToSite(photoId: string): Photo | null {
   return store.assignPhotoToSite(photoId, match.site.id);
 }
 
+/** Release manual holds on queued photos near a deployment so new sites can pick them up. */
+export function releaseMatchHoldsNearSite(site: Site, maxDistanceM = siteMaxMatchDistanceM()): number {
+  if (site.lat == null || site.lng == null) return 0;
+
+  let released = 0;
+  for (const photo of store.listUnassignedPhotosWithGps()) {
+    if (photo.lat == null || photo.lng == null || !photo.matchHold) continue;
+    const distanceM = haversineMeters(photo.lat, photo.lng, site.lat, site.lng);
+    if (distanceM <= maxDistanceM) {
+      store.releaseMatchHold(photo.id);
+      released++;
+    }
+  }
+
+  return released;
+}
+
 export function matchSiteToPhotos(siteId: string): number {
   const site = store.getSite(siteId);
   if (!site || site.lat == null || site.lng == null) return 0;
+
+  releaseMatchHoldsNearSite(site);
 
   const candidates = store.listAutoMatchCandidates();
   let matched = 0;
@@ -84,6 +108,15 @@ export function matchSiteToPhotos(siteId: string): number {
   }
 
   return matched;
+}
+
+/** After a deployment is registered or re-geocoded, rematch the queue. */
+export function rematchAfterSiteChange(siteId: string): number {
+  const site = store.getSite(siteId);
+  if (!site || site.lat == null || site.lng == null) return 0;
+
+  releaseMatchHoldsNearSite(site);
+  return rematchAllUnassignedPhotos({ releaseHeld: false });
 }
 
 /** Try to tag unassigned photos that are eligible for auto-match. */

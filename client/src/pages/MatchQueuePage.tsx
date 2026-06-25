@@ -115,7 +115,7 @@ export function MatchQueuePage() {
             {
               step: "01",
               title: "Retry auto-match",
-              body: "Strict ~100 m, soft to nearest site when isolated (~1 mi).",
+              body: "Strict ~100 m, soft to nearest site within ~2 mi when isolated (~1 mi cushion).",
             },
             {
               step: "02",

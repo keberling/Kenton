@@ -6,6 +6,7 @@ import {
   LEGACY_SITE_MATCH_RADIUS_M,
   METERS_PER_MILE,
   siteMatchRadiusM,
+  siteMaxMatchDistanceM,
   siteSoftMatchCushionM,
 } from "./config.js";
 
@@ -174,9 +175,11 @@ for (const legacyRadius of LEGACY_SITE_MATCH_RADIUS_M) {
 }
 
 const cushionM = siteSoftMatchCushionM();
+const maxMatchM = siteMaxMatchDistanceM();
 console.log(
   `Site match radius: ${matchRadius}m (${(matchRadius / METERS_PER_MILE).toFixed(2)} mi); ` +
-    `soft cushion: ${cushionM}m (${(cushionM / METERS_PER_MILE).toFixed(1)} mi)`,
+    `soft cushion: ${cushionM}m (${(cushionM / METERS_PER_MILE).toFixed(1)} mi); ` +
+    `max distance: ${maxMatchM}m (${(maxMatchM / METERS_PER_MILE).toFixed(1)} mi)`,
 );
 
 console.log(`Kenton data directory: ${dataDir}`);

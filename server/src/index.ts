@@ -5,7 +5,7 @@ import { createServer } from "http";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
-import { siteMatchRadiusM, siteSoftMatchCushionM } from "./config.js";
+import { siteMatchRadiusM, siteMaxMatchDistanceM, siteSoftMatchCushionM } from "./config.js";
 import { dataDir, dbPath } from "./db.js";
 import { ingestUploadedFile } from "./ingestPhoto.js";
 import { reverseGeocodeAddress, searchAddresses } from "./addressSearch.js";
@@ -13,7 +13,7 @@ import { geocodeAddress } from "./geocode.js";
 import { buildDeploymentRecommendations } from "./siteRecommendations.js";
 import {
   matchPhotoToSite,
-  matchSiteToPhotos,
+  rematchAfterSiteChange,
   rematchAllUnassignedPhotos,
   syncExistingPhotoMatches,
 } from "./matcher.js";
@@ -124,6 +124,7 @@ app.get("/api/health", (_req, res) => {
     photos: stats.totalPhotos,
     matchRadiusM: siteMatchRadiusM(),
     softMatchCushionM: siteSoftMatchCushionM(),
+    maxMatchDistanceM: siteMaxMatchDistanceM(),
   });
 });
 
@@ -215,7 +216,7 @@ app.post("/api/sites", async (req, res) => {
     geocodeSource: geocoded.point?.source ?? null,
   });
 
-  const matched = geocoded.point ? matchSiteToPhotos(site.id) : 0;
+  const matched = geocoded.point ? rematchAfterSiteChange(site.id) : 0;
 
   res.status(201).json({
     site: enrichSite(store.getSite(site.id)!),
@@ -240,7 +241,7 @@ app.post("/api/sites/:id/geocode", async (req, res) => {
   }
 
   store.updateSiteCoords(site.id, geocoded.point.lat, geocoded.point.lng, geocoded.point.source);
-  const matched = matchSiteToPhotos(site.id);
+  const matched = rematchAfterSiteChange(site.id);
 
   res.json({
     site: enrichSite(store.getSite(site.id)!),
@@ -442,6 +443,7 @@ app.post("/api/photos/rematch", (_req, res) => {
     matched,
     matchRadiusM: siteMatchRadiusM(),
     softMatchCushionM: siteSoftMatchCushionM(),
+    maxMatchDistanceM: siteMaxMatchDistanceM(),
   });
 });
 
