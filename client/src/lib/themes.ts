@@ -80,7 +80,7 @@ export const THEMES: ThemeSpec[] = [
   },
 ];
 
-export const DEFAULT_THEME_ID: ThemeId = "photon-dark";
+export const DEFAULT_THEME_ID: ThemeId = "coral-uplink";
 export const THEME_STORAGE_KEY = "kenton-theme";
 
 export function getTheme(id: ThemeId): ThemeSpec {
