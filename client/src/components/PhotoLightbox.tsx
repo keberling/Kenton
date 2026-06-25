@@ -1,17 +1,30 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, MapPin, Satellite, UserRound, X } from "lucide-react";
-import { useCallback, useEffect } from "react";
-import type { Photo } from "../types";
+import { useCallback, useEffect, useState } from "react";
+import type { Photo, Site } from "../types";
 import { formatCoords, formatDate, formatUploaderDetail } from "../lib/format";
+import { PhotoMatchActions } from "./PhotoMatchActions";
 
 interface PhotoLightboxProps {
   photos: Photo[];
   index: number;
   onClose: () => void;
   onChangeIndex: (index: number) => void;
+  sites?: Site[];
+  showMatchActions?: boolean;
+  onPhotoUpdated?: (photo: Photo) => void;
 }
 
-export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLightboxProps) {
+export function PhotoLightbox({
+  photos,
+  index,
+  onClose,
+  onChangeIndex,
+  sites = [],
+  showMatchActions = false,
+  onPhotoUpdated,
+}: PhotoLightboxProps) {
+  const [currentPhoto, setCurrentPhoto] = useState<Photo | null>(null);
   const photo = photos[index];
   const hasPrev = index > 0;
   const hasNext = index < photos.length - 1;
@@ -39,7 +52,12 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
     };
   }, [goNext, goPrev, onClose]);
 
-  if (!photo) return null;
+  useEffect(() => {
+    setCurrentPhoto(null);
+  }, [index, photo?.id]);
+
+  const activePhoto = currentPhoto ?? photo;
+  if (!activePhoto) return null;
 
   const progress = ((index + 1) / photos.length) * 100;
 
@@ -57,7 +75,7 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
         {/* Blurred backdrop */}
         <div
           className="pointer-events-none absolute inset-0 scale-110 opacity-30 blur-3xl"
-          style={{ backgroundImage: `url(${photo.url})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ backgroundImage: `url(${activePhoto.url})`, backgroundSize: "cover", backgroundPosition: "center" }}
         />
 
         {/* Progress bar */}
@@ -101,9 +119,9 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
             )}
 
             <motion.img
-              key={photo.id}
-              src={photo.url}
-              alt={photo.originalName}
+              key={activePhoto.id}
+              src={activePhoto.url}
+              alt={activePhoto.originalName}
               initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -135,27 +153,31 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
           {/* Metadata panel */}
           <aside className="panel window m-4 mt-0 shrink-0 rounded-2xl p-4 lg:m-6 lg:mt-0 lg:w-72">
             <p className="hud-label">Metadata</p>
-            <h3 className="mt-2 truncate font-display text-lg font-semibold text-white">{photo.originalName}</h3>
+            <h3 className="mt-2 truncate font-display text-lg font-semibold text-white">
+              {activePhoto.originalName}
+            </h3>
             <dl className="mt-4 space-y-3 font-mono text-xs">
               <div>
                 <dt className="text-white/35">CAPTURED</dt>
-                <dd className="mt-0.5 text-white/80">{formatDate(photo.takenAt ?? photo.uploadedAt)}</dd>
+                <dd className="mt-0.5 text-white/80">
+                  {formatDate(activePhoto.takenAt ?? activePhoto.uploadedAt)}
+                </dd>
               </div>
-              {photo.siteName && (
+              {activePhoto.siteName && (
                 <div>
                   <dt className="text-white/35">DEPLOYMENT</dt>
                   <dd className="mt-0.5 inline-flex items-center gap-1.5 text-violet-300">
                     <MapPin size={12} />
-                    {photo.siteName}
+                    {activePhoto.siteName}
                   </dd>
                 </div>
               )}
-              {formatCoords(photo.lat, photo.lng) ? (
+              {formatCoords(activePhoto.lat, activePhoto.lng) ? (
                 <div>
                   <dt className="text-white/35">COORDINATES</dt>
                   <dd className="mt-0.5 inline-flex items-center gap-1.5 text-cyan-300">
                     <Satellite size={12} />
-                    {formatCoords(photo.lat, photo.lng)}
+                    {formatCoords(activePhoto.lat, activePhoto.lng)}
                   </dd>
                 </div>
               ) : (
@@ -164,24 +186,41 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
                   <dd className="mt-0.5 text-amber-400/80">NO GPS EMBEDDED</dd>
                 </div>
               )}
-              {photo.width && photo.height && (
+              {activePhoto.width && activePhoto.height && (
                 <div>
                   <dt className="text-white/35">RESOLUTION</dt>
                   <dd className="mt-0.5 text-white/80">
-                    {photo.width} × {photo.height}
+                    {activePhoto.width} × {activePhoto.height}
                   </dd>
                 </div>
               )}
-              {formatUploaderDetail(photo.uploader) && (
+              {formatUploaderDetail(activePhoto.uploader) && (
                 <div>
                   <dt className="text-white/35">OPERATOR</dt>
                   <dd className="mt-0.5 inline-flex items-start gap-1.5 text-cyan-300">
                     <UserRound size={12} className="mt-0.5 shrink-0" />
-                    <span>{formatUploaderDetail(photo.uploader)}</span>
+                    <span>{formatUploaderDetail(activePhoto.uploader)}</span>
                   </dd>
                 </div>
               )}
             </dl>
+
+            {showMatchActions && onPhotoUpdated && (
+              <div className="mt-5 border-t border-white/[0.06] pt-4">
+                <p className="hud-label text-cyan-400/70">Routing</p>
+                <div className="mt-3">
+                  <PhotoMatchActions
+                    photo={activePhoto}
+                    sites={sites}
+                    onUpdated={(updated) => {
+                      setCurrentPhoto(updated);
+                      onPhotoUpdated(updated);
+                    }}
+                    compact
+                  />
+                </div>
+              </div>
+            )}
           </aside>
         </div>
 

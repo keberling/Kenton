@@ -96,6 +96,22 @@ export function rematchPhoto(id: string) {
 
 export function rematchAllPhotos() {
   return fetch("/api/photos/rematch", { method: "POST" }).then((r) =>
-    parse<{ matched: number; matchRadiusM: number }>(r),
+    parse<{ matched: number; matchRadiusM: number; softMatchCushionM: number }>(r),
   );
+}
+
+export function assignPhotoToSite(photoId: string, siteId: string) {
+  return fetch(`/api/photos/${photoId}/site`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ siteId }),
+  }).then((r) => parse<Photo>(r));
+}
+
+export function unassignPhoto(photoId: string) {
+  return fetch(`/api/photos/${photoId}/site`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ siteId: null }),
+  }).then((r) => parse<Photo>(r));
 }

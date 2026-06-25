@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { MatchQueuePage } from "./pages/MatchQueuePage";
 import { PhotosPage } from "./pages/PhotosPage";
 import { SiteDetailPage } from "./pages/SiteDetailPage";
 import { SitesPage } from "./pages/SitesPage";
@@ -13,6 +14,7 @@ export default function App() {
         <Route index element={<UploadPage />} />
         <Route path="sites" element={<SitesPage />} />
         <Route path="sites/:id" element={<SiteDetailPage />} />
+        <Route path="match" element={<MatchQueuePage />} />
         <Route path="photos" element={<PhotosPage />} />
         <Route path="map" element={<MapPage />} />
       </Route>

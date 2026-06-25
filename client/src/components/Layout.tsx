@@ -1,4 +1,5 @@
 import { Activity, Cpu, Globe2, Images, MapPinned, Radio, Upload } from "lucide-react";
+import { MatchNavBadge } from "./MatchNavBadge";
 import { NavLink, Outlet } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
 import { AuthPanel } from "./AuthPanel";
@@ -9,6 +10,7 @@ import { useTheme } from "../lib/ThemeContext";
 
 const links = [
   { to: "/", label: "Ingest", icon: Upload, code: "ING" },
+  { to: "/match", label: "Match", icon: Radio, code: "MTCH" },
   { to: "/sites", label: "Deployments", icon: MapPinned, code: "DEP" },
   { to: "/photos", label: "Archive", icon: Images, code: "ARC" },
   { to: "/map", label: "Origins", icon: Globe2, code: "MAP" },
@@ -76,6 +78,8 @@ export function Layout() {
                     <span className="font-medium">{label}</span>
                     {to === "/" ? (
                       <IngestNavBadge active={isActive} />
+                    ) : to === "/match" ? (
+                      <MatchNavBadge active={isActive} fallbackCode={code} />
                     ) : (
                       <span className="font-mono ml-auto text-[10px] tracking-wider opacity-60 group-hover:opacity-90">
                         {code}
@@ -96,7 +100,7 @@ export function Layout() {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Assets", value: stats.totalPhotos },
-                  { label: "Queued", value: stats.unassignedPhotos },
+                  { label: "Match", value: stats.unassignedPhotos },
                   { label: "Sites", value: stats.sites },
                   { label: "GPS", value: stats.photosWithGps },
                 ].map((item) => (
@@ -150,23 +154,24 @@ export function Layout() {
         </div>
       </div>
 
-      <nav className="panel window safe-bottom fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 gap-1 rounded-2xl p-1.5 lg:hidden">
+      <nav className="panel window safe-bottom fixed inset-x-2 bottom-3 z-30 grid grid-cols-5 gap-0.5 rounded-2xl p-1.5 lg:hidden">
         {links.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/"}
             className={({ isActive }) =>
-              `relative flex min-h-14 flex-col items-center justify-center rounded-xl px-2 py-2 text-[10px] font-medium transition ${
+              `relative flex min-h-14 flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition ${
                 isActive ? "neu-inset t-accent" : "t-subtle"
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={20} />
-                <span className="mt-1">{label}</span>
+                <Icon size={18} />
+                <span className="mt-1 leading-tight">{label}</span>
                 {to === "/" && <IngestNavBadge active={isActive} compact />}
+                {to === "/match" && <MatchNavBadge active={isActive} compact />}
               </>
             )}
           </NavLink>
