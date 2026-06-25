@@ -2,7 +2,9 @@ import { motion } from "framer-motion";
 import { MapPin, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { createSite, deleteSite, getSites, regeocodeSite } from "../lib/api";
+import { formatRadiusMeters } from "../lib/format";
 import type { Site } from "../types";
 
 export function SitesPage() {
@@ -52,12 +54,15 @@ export function SitesPage() {
     load();
   };
 
+  const defaultRadius = sites[0]?.radiusMeters;
+
   return (
     <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <section className="glass h-fit rounded-3xl p-5">
         <h2 className="font-display text-xl font-semibold text-stone-900">Add job site</h2>
         <p className="mt-2 text-sm text-stone-500">
-          Enter the site address. Photos taken within ~500 meters will be tagged automatically.
+          Enter the site address. Photos with GPS within{" "}
+          {defaultRadius ? formatRadiusMeters(defaultRadius) : "~10 miles"} are tagged automatically.
         </p>
 
         <form onSubmit={handleCreate} className="mt-5 space-y-3">
@@ -106,45 +111,66 @@ export function SitesPage() {
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.04 }}
-              className="glass flex items-center gap-4 rounded-2xl px-4 py-4"
+              className="glass rounded-2xl px-4 py-4"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-                <MapPin size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <Link to={`/sites/${site.id}`} className="font-display text-lg font-semibold text-stone-900 hover:text-orange-700">
-                  {site.name}
-                </Link>
-                <p className="truncate text-sm text-stone-500">{site.address}</p>
-                <p className="mt-1 text-xs text-stone-400">
-                  {site.photoCount ?? 0} photos · {site.radiusMeters}m match radius
-                  {site.lat != null ? " · geocoded" : " · not geocoded"}
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-1">
-                {site.lat == null && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const result = await regeocodeSite(site.id);
-                        setMessage(`Geocoded via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
-                        load();
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : "Geocode failed");
-                      }
-                    }}
-                    className="rounded-xl px-3 py-2 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
-                  >
-                    Retry geocode
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDelete(site.id)}
-                  className="rounded-xl p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
-                  aria-label="Delete site"
-                >
-                  <Trash2 size={16} />
-                </button>
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+                  <MapPin size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link
+                        to={`/sites/${site.id}`}
+                        className="font-display text-lg font-semibold text-stone-900 hover:text-orange-700"
+                      >
+                        {site.name}
+                      </Link>
+                      <p className="text-sm text-stone-500">{site.address}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      {site.lat == null ? (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const result = await regeocodeSite(site.id);
+                              setMessage(`Geocoded via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
+                              load();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Geocode failed");
+                            }
+                          }}
+                          className="rounded-xl px-3 py-2 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
+                        >
+                          Retry geocode
+                        </button>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const result = await regeocodeSite(site.id);
+                              setMessage(`Refreshed geocode via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
+                              load();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Geocode failed");
+                            }
+                          }}
+                          className="rounded-xl px-3 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-100"
+                        >
+                          Refresh geocode
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(site.id)}
+                        className="rounded-xl p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        aria-label="Delete site"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <SiteGeocodeInfo site={site} />
+                </div>
               </div>
             </motion.div>
           ))

@@ -10,6 +10,7 @@ import { dataDir, dbPath } from "./db.js";
 import { extractPhotoMeta } from "./exif.js";
 import { geocodeAddress } from "./geocode.js";
 import { matchPhotoToSite, matchSiteToPhotos, rematchAllUnassignedPhotos } from "./matcher.js";
+import { enrichSite } from "./siteInsights.js";
 import { store } from "./store.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -73,7 +74,7 @@ app.get("/api/stats", (_req, res) => {
 });
 
 app.get("/api/sites", (_req, res) => {
-  res.json(store.listSites());
+  res.json(store.listSites().map(enrichSite));
 });
 
 app.get("/api/sites/:id", (req, res) => {
@@ -82,7 +83,7 @@ app.get("/api/sites/:id", (req, res) => {
     res.status(404).json({ error: "Site not found" });
     return;
   }
-  res.json(site);
+  res.json(enrichSite(site));
 });
 
 app.post("/api/sites", async (req, res) => {
@@ -102,12 +103,13 @@ app.post("/api/sites", async (req, res) => {
     lat: geocoded.point?.lat ?? null,
     lng: geocoded.point?.lng ?? null,
     radiusMeters,
+    geocodeSource: geocoded.point?.source ?? null,
   });
 
   const matched = geocoded.point ? matchSiteToPhotos(site.id) : 0;
 
   res.status(201).json({
-    site: store.getSite(site.id),
+    site: enrichSite(store.getSite(site.id)!),
     matchedPhotos: matched,
     geocoded: Boolean(geocoded.point),
     geocodeSource: geocoded.point?.source ?? null,
@@ -128,11 +130,11 @@ app.post("/api/sites/:id/geocode", async (req, res) => {
     return;
   }
 
-  store.updateSiteCoords(site.id, geocoded.point.lat, geocoded.point.lng);
+  store.updateSiteCoords(site.id, geocoded.point.lat, geocoded.point.lng, geocoded.point.source);
   const matched = matchSiteToPhotos(site.id);
 
   res.json({
-    site: store.getSite(site.id),
+    site: enrichSite(store.getSite(site.id)!),
     matchedPhotos: matched,
     geocodeSource: geocoded.point.source,
   });

@@ -1,12 +1,12 @@
 # Kenton — Job Site Photo Manager
 
-Interactive upload site for field techs to drop project photos. GPS metadata from each image is extracted automatically, and photos are matched to job sites when they're within ~500 meters of the geocoded site address.
+Interactive upload site for field techs to drop project photos. GPS metadata from each image is extracted automatically, and photos are matched to job sites when they're within ~10 miles of the geocoded site address.
 
 ## How it works
 
 1. **Upload anytime** — techs upload photos to a general pool from their phone or desktop.
 2. **GPS tagging** — EXIF location data is read from each photo on upload.
-3. **Auto-match on upload** — if a job site already exists within 500m, the photo is tagged immediately.
+3. **Auto-match on upload** — if a job site already exists within 10 miles, the photo is tagged immediately.
 4. **Auto-match on site create** — when a new job site address is added, all nearby unassigned photos are tagged retroactively.
 
 ## Stack
@@ -40,7 +40,7 @@ npm run dev
 | `PORT` | `3000` (prod) / `3001` (dev) | HTTP port |
 | `DATA_DIR` | `./server/data` | SQLite + photo storage |
 | `CLIENT_ORIGIN` | same-origin in prod | CORS origin for Coolify |
-| `SITE_MATCH_RADIUS_M` | `500` | GPS match radius in meters (existing sites at the old 100m default are upgraded on startup) |
+| `SITE_MATCH_RADIUS_M` | `16093` (~10 mi) | GPS match radius in meters (existing sites at older defaults are upgraded on startup) |
 | `NOMINATIM_EMAIL` | — | Contact email for Nominatim (recommended in production) |
 
 ## Docker / Coolify

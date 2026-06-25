@@ -1,3 +1,12 @@
+export interface NearbyPhotoInsight {
+  photoId: string;
+  originalName: string;
+  lat: number;
+  lng: number;
+  distanceM: number;
+  withinRadius: boolean;
+}
+
 export interface Site {
   id: string;
   name: string;
@@ -5,9 +14,14 @@ export interface Site {
   lat: number | null;
   lng: number | null;
   radiusMeters: number;
+  geocodeSource: string | null;
   createdAt: number;
   updatedAt: number;
   photoCount?: number;
+  nearestUnassigned?: NearbyPhotoInsight | null;
+  unassignedWithinRadius?: number;
+  unassignedWithGps?: number;
+  nearbyUnassigned?: NearbyPhotoInsight[];
 }
 
 export interface Photo {

@@ -57,8 +57,8 @@ export function PhotosPage() {
 
       {filter === "unassigned" && photos.length > 0 && (
         <p className="text-sm text-stone-500">
-          Tip: photos with GPS auto-tag when within ~500m of a geocoded job site. Geocoded
-          addresses can be offset from where photos were taken, so a wider radius helps.
+          Tip: photos with GPS auto-tag when within ~10 miles of a geocoded job site. Compare
+          coordinates on the Sites tab if matching still looks wrong.
           {" "}
           <button
             className="font-medium text-orange-700 underline disabled:opacity-50"

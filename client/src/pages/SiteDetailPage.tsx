@@ -2,13 +2,15 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PhotoGrid } from "../components/PhotoGrid";
-import { deletePhoto, getPhotos, getSite } from "../lib/api";
+import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
+import { deletePhoto, getPhotos, getSite, regeocodeSite } from "../lib/api";
 import type { Photo, Site } from "../types";
 
 export function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [site, setSite] = useState<Site | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -36,11 +38,28 @@ export function SiteDetailPage() {
       </Link>
 
       <section className="glass rounded-3xl p-5">
-        <h2 className="font-display text-2xl font-bold text-stone-900">{site.name}</h2>
-        <p className="mt-1 text-stone-500">{site.address}</p>
-        <p className="mt-3 text-sm text-stone-400">
-          {photos.length} photos tagged within {site.radiusMeters} meters of this address
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-stone-900">{site.name}</h2>
+            <p className="mt-1 text-stone-500">{site.address}</p>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const result = await regeocodeSite(site.id);
+                setMessage(`Geocoded via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
+                load();
+              } catch {
+                setMessage("Geocode failed — check the address and try again.");
+              }
+            }}
+            className="rounded-xl bg-stone-100 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-200"
+          >
+            Refresh geocode
+          </button>
+        </div>
+        {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
+        <SiteGeocodeInfo site={site} detailed />
       </section>
 
       <PhotoGrid
@@ -49,7 +68,7 @@ export function SiteDetailPage() {
           await deletePhoto(photoId);
           load();
         }}
-        emptyMessage="No photos tagged to this site yet. Upload field photos nearby or add the site after photos are taken."
+        emptyMessage="No photos tagged to this site yet. Compare the geocoded location above with unassigned photo coordinates on the Sites page."
       />
     </div>
   );

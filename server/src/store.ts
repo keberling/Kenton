@@ -10,6 +10,7 @@ interface SiteRow {
   lat: number | null;
   lng: number | null;
   radius_meters: number;
+  geocode_source: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -37,6 +38,7 @@ function rowToSite(row: SiteRow, photoCount = 0): Site {
     lat: row.lat,
     lng: row.lng,
     radiusMeters: row.radius_meters,
+    geocodeSource: row.geocode_source ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     photoCount,
@@ -88,6 +90,7 @@ class Store {
     lat: number | null;
     lng: number | null;
     radiusMeters?: number;
+    geocodeSource?: string | null;
   }): Site {
     const now = Date.now();
     const site: SiteRow = {
@@ -97,13 +100,14 @@ class Store {
       lat: input.lat,
       lng: input.lng,
       radius_meters: input.radiusMeters ?? siteMatchRadiusM(),
+      geocode_source: input.geocodeSource ?? null,
       created_at: now,
       updated_at: now,
     };
 
     db.prepare(`
-      INSERT INTO sites (id, name, address, lat, lng, radius_meters, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sites (id, name, address, lat, lng, radius_meters, geocode_source, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       site.id,
       site.name,
@@ -111,6 +115,7 @@ class Store {
       site.lat,
       site.lng,
       site.radius_meters,
+      site.geocode_source,
       site.created_at,
       site.updated_at,
     );
@@ -118,11 +123,22 @@ class Store {
     return rowToSite(site, 0);
   }
 
-  updateSiteCoords(id: string, lat: number, lng: number): Site | null {
+  updateSiteCoords(
+    id: string,
+    lat: number,
+    lng: number,
+    geocodeSource?: string | null,
+  ): Site | null {
     const now = Date.now();
-    db.prepare(`
-      UPDATE sites SET lat = ?, lng = ?, updated_at = ? WHERE id = ?
-    `).run(lat, lng, now, id);
+    if (geocodeSource !== undefined) {
+      db.prepare(`
+        UPDATE sites SET lat = ?, lng = ?, geocode_source = ?, updated_at = ? WHERE id = ?
+      `).run(lat, lng, geocodeSource, now, id);
+    } else {
+      db.prepare(`
+        UPDATE sites SET lat = ?, lng = ?, updated_at = ? WHERE id = ?
+      `).run(lat, lng, now, id);
+    }
     return this.getSite(id);
   }
 

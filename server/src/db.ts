@@ -2,7 +2,14 @@ import fs from "fs";
 import path from "path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "url";
-import { LEGACY_SITE_MATCH_RADIUS_M, siteMatchRadiusM } from "./config.js";
+import { LEGACY_SITE_MATCH_RADIUS_M, METERS_PER_MILE, siteMatchRadiusM } from "./config.js";
+
+function ensureSitesColumn(name: string, definition: string) {
+  const columns = db.prepare(`PRAGMA table_info(sites)`).all() as { name: string }[];
+  if (!columns.some((column) => column.name === name)) {
+    db.exec(`ALTER TABLE sites ADD COLUMN ${name} ${definition}`);
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const devDataDir = path.join(__dirname, "../data");
@@ -76,7 +83,8 @@ db.exec(`
     address TEXT NOT NULL,
     lat REAL,
     lng REAL,
-    radius_meters INTEGER NOT NULL DEFAULT 500,
+    radius_meters INTEGER NOT NULL DEFAULT 16093,
+    geocode_source TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -107,15 +115,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_photos_coords ON photos(lat, lng) WHERE lat IS NOT NULL;
 `);
 
+ensureSitesColumn("geocode_source", "TEXT");
+
 const matchRadius = siteMatchRadiusM();
-const radiusMigration = db
-  .prepare(`UPDATE sites SET radius_meters = ? WHERE radius_meters = ?`)
-  .run(matchRadius, LEGACY_SITE_MATCH_RADIUS_M);
-if (radiusMigration.changes > 0) {
-  console.log(
-    `Updated ${radiusMigration.changes} site(s) match radius ${LEGACY_SITE_MATCH_RADIUS_M}m → ${matchRadius}m`,
-  );
+for (const legacyRadius of LEGACY_SITE_MATCH_RADIUS_M) {
+  const radiusMigration = db
+    .prepare(`UPDATE sites SET radius_meters = ? WHERE radius_meters = ?`)
+    .run(matchRadius, legacyRadius);
+  if (radiusMigration.changes > 0) {
+    console.log(
+      `Updated ${radiusMigration.changes} site(s) match radius ${legacyRadius}m → ${matchRadius}m`,
+    );
+  }
 }
+
+console.log(`Site match radius: ${matchRadius}m (${(matchRadius / METERS_PER_MILE).toFixed(1)} mi)`);
 
 console.log(`Kenton data directory: ${dataDir}`);
 console.log(`SQLite database: ${dbPath}`);
