@@ -49,16 +49,20 @@ export function matchSiteToPhotos(siteId: string): number {
   return matched;
 }
 
+/** Try to tag every unassigned photo that has GPS against current job sites. */
 export function rematchAllUnassignedPhotos(): number {
   const candidates = store.listUnassignedPhotosWithGps();
   let matched = 0;
 
   for (const photo of candidates) {
     if (photo.lat == null || photo.lng == null) continue;
-    const before = photo.siteId;
     const updated = matchPhotoToSite(photo.id);
-    if (updated?.siteId && updated.siteId !== before) matched++;
+    if (updated?.siteId) matched++;
   }
 
   return matched;
+}
+
+export function syncExistingPhotoMatches(): number {
+  return rematchAllUnassignedPhotos();
 }

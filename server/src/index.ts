@@ -9,7 +9,12 @@ import { siteMatchRadiusM } from "./config.js";
 import { dataDir, dbPath } from "./db.js";
 import { extractPhotoMeta } from "./exif.js";
 import { geocodeAddress } from "./geocode.js";
-import { matchPhotoToSite, matchSiteToPhotos, rematchAllUnassignedPhotos } from "./matcher.js";
+import {
+  matchPhotoToSite,
+  matchSiteToPhotos,
+  rematchAllUnassignedPhotos,
+  syncExistingPhotoMatches,
+} from "./matcher.js";
 import { enrichSite } from "./siteInsights.js";
 import { store } from "./store.js";
 
@@ -70,14 +75,17 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/stats", (_req, res) => {
+  syncExistingPhotoMatches();
   res.json(store.stats());
 });
 
 app.get("/api/sites", (_req, res) => {
+  syncExistingPhotoMatches();
   res.json(store.listSites().map(enrichSite));
 });
 
 app.get("/api/sites/:id", (req, res) => {
+  syncExistingPhotoMatches();
   const site = store.getSite(req.params.id);
   if (!site) {
     res.status(404).json({ error: "Site not found" });
@@ -149,6 +157,8 @@ app.delete("/api/sites/:id", (req, res) => {
 });
 
 app.get("/api/photos", (req, res) => {
+  syncExistingPhotoMatches();
+
   const siteId = typeof req.query.siteId === "string" ? req.query.siteId : undefined;
   const unassigned = req.query.unassigned === "true";
 
@@ -272,7 +282,11 @@ if (isProduction && fs.existsSync(clientDist)) {
 }
 
 httpServer.listen(PORT, "0.0.0.0", () => {
+  const matched = syncExistingPhotoMatches();
   console.log(`Kenton running on http://0.0.0.0:${PORT}`);
+  if (matched > 0) {
+    console.log(`Matched ${matched} existing unassigned photo(s) to job sites`);
+  }
   if (isProduction) {
     console.log(`Serving client from ${clientDist}`);
   }
