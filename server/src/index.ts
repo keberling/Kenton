@@ -78,21 +78,46 @@ app.post("/api/sites", async (req, res) => {
     return;
   }
 
-  const coords = await geocodeAddress(address);
+  const geocoded = await geocodeAddress(address);
   const site = store.createSite({
     name,
     address,
-    lat: coords?.lat ?? null,
-    lng: coords?.lng ?? null,
+    lat: geocoded.point?.lat ?? null,
+    lng: geocoded.point?.lng ?? null,
     radiusMeters,
   });
 
-  const matched = coords ? matchSiteToPhotos(site.id) : 0;
+  const matched = geocoded.point ? matchSiteToPhotos(site.id) : 0;
 
   res.status(201).json({
     site: store.getSite(site.id),
     matchedPhotos: matched,
-    geocoded: Boolean(coords),
+    geocoded: Boolean(geocoded.point),
+    geocodeSource: geocoded.point?.source ?? null,
+    geocodeError: geocoded.error,
+  });
+});
+
+app.post("/api/sites/:id/geocode", async (req, res) => {
+  const site = store.getSite(req.params.id);
+  if (!site) {
+    res.status(404).json({ error: "Site not found" });
+    return;
+  }
+
+  const geocoded = await geocodeAddress(site.address);
+  if (!geocoded.point) {
+    res.status(422).json({ error: geocoded.error ?? "Could not geocode address" });
+    return;
+  }
+
+  store.updateSiteCoords(site.id, geocoded.point.lat, geocoded.point.lng);
+  const matched = matchSiteToPhotos(site.id);
+
+  res.json({
+    site: store.getSite(site.id),
+    matchedPhotos: matched,
+    geocodeSource: geocoded.point.source,
   });
 });
 

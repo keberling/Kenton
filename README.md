@@ -13,7 +13,7 @@ Interactive upload site for field techs to drop project photos. GPS metadata fro
 
 - **Client:** React 19, Vite, Tailwind CSS 4, React Router
 - **Server:** Node.js, Express, SQLite (`node:sqlite`), EXIF via `exifr`
-- **Geocoding:** OpenStreetMap Nominatim (free, cached in SQLite)
+- **Geocoding:** Nominatim + US Census + Photon fallbacks (cached in SQLite)
 
 ## Quick start
 
@@ -41,6 +41,7 @@ npm run dev
 | `DATA_DIR` | `./server/data` | SQLite + photo storage |
 | `CLIENT_ORIGIN` | same-origin in prod | CORS origin for Coolify |
 | `SITE_MATCH_RADIUS_M` | `100` | GPS match radius in meters |
+| `NOMINATIM_EMAIL` | — | Contact email for Nominatim (recommended in production) |
 
 ## Docker / Coolify
 

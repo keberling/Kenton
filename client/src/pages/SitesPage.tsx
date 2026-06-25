@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { MapPin, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { createSite, deleteSite, getSites } from "../lib/api";
+import { createSite, deleteSite, getSites, regeocodeSite } from "../lib/api";
 import type { Site } from "../types";
 
 export function SitesPage() {
@@ -35,8 +35,8 @@ export function SitesPage() {
       setAddress("");
       setMessage(
         result.geocoded
-          ? `Site created. ${result.matchedPhotos} nearby photo${result.matchedPhotos === 1 ? "" : "s"} auto-tagged.`
-          : "Site created, but the address could not be geocoded. Photos won't auto-match until coordinates are available.",
+          ? `Site created via ${result.geocodeSource ?? "geocoder"}. ${result.matchedPhotos} nearby photo${result.matchedPhotos === 1 ? "" : "s"} auto-tagged.`
+          : `Site created, but geocoding failed: ${result.geocodeError ?? "unknown error"}`,
       );
       load();
     } catch (err) {
@@ -121,13 +121,31 @@ export function SitesPage() {
                   {site.lat != null ? " · geocoded" : " · not geocoded"}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(site.id)}
-                className="rounded-xl p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
-                aria-label="Delete site"
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex shrink-0 gap-1">
+                {site.lat == null && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const result = await regeocodeSite(site.id);
+                        setMessage(`Geocoded via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
+                        load();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : "Geocode failed");
+                      }
+                    }}
+                    className="rounded-xl px-3 py-2 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
+                  >
+                    Retry geocode
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDelete(site.id)}
+                  className="rounded-xl p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                  aria-label="Delete site"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </motion.div>
           ))
         )}

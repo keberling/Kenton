@@ -25,7 +25,19 @@ export function createSite(input: { name: string; address: string; radiusMeters?
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
-  }).then((r) => parse<{ site: Site; matchedPhotos: number; geocoded: boolean }>(r));
+  }).then((r) => parse<{
+    site: Site;
+    matchedPhotos: number;
+    geocoded: boolean;
+    geocodeSource?: string | null;
+    geocodeError?: string | null;
+  }>(r));
+}
+
+export function regeocodeSite(id: string) {
+  return fetch(`/api/sites/${id}/geocode`, { method: "POST" }).then((r) =>
+    parse<{ site: Site; matchedPhotos: number; geocodeSource: string }>(r),
+  );
 }
 
 export function deleteSite(id: string) {
