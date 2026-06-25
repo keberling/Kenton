@@ -15,12 +15,12 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
       className="window flex flex-wrap items-end justify-between gap-4"
     >
       <div>
-        <p className="hud-label text-cyan-400/80">{eyebrow}</p>
-        <h2 className="font-display mt-1 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <p className="hud-label t-accent">{eyebrow}</p>
+        <h2 className="font-display mt-1 text-3xl font-bold tracking-tight t-fg sm:text-4xl">
           {title}
         </h2>
         {description && (
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/50">{description}</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed t-muted">{description}</p>
         )}
       </div>
       {action}

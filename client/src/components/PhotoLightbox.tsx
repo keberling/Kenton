@@ -49,7 +49,7 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex flex-col bg-[#05060a]/98 backdrop-blur-2xl"
+        className="lightbox-backdrop fixed inset-0 z-50 flex flex-col backdrop-blur-2xl"
         role="dialog"
         aria-modal="true"
         aria-label="Asset viewer"

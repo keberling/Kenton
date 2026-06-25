@@ -8,12 +8,12 @@ interface TechMetaProps {
 }
 
 const accentClass: Record<NonNullable<TechMetaProps["accent"]>, string> = {
-  cyan: "text-cyan-400/85",
-  violet: "text-violet-400/85",
-  emerald: "text-emerald-400/85",
-  amber: "text-amber-400/85",
-  rose: "text-rose-400/85",
-  muted: "text-white/45",
+  cyan: "t-accent",
+  violet: "t-accent-2",
+  emerald: "t-success",
+  amber: "t-warn",
+  rose: "t-danger",
+  muted: "t-muted",
 };
 
 export function TechMeta({ label, value, accent = "muted", mono = true }: TechMetaProps) {
