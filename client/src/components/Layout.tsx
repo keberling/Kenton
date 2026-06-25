@@ -1,11 +1,10 @@
 import { Activity, Cpu, Images, MapPinned, Radio, Upload } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
+import { IngestHud, IngestNavBadge } from "./IngestHud";
 import { ThemePicker } from "./ThemePicker";
+import { useLiveData } from "../lib/LiveDataContext";
 import { useTheme } from "../lib/ThemeContext";
-import { getStats } from "../lib/api";
-import type { Stats } from "../types";
 
 const links = [
   { to: "/", label: "Ingest", icon: Upload, code: "ING" },
@@ -13,18 +12,17 @@ const links = [
   { to: "/photos", label: "Archive", icon: Images, code: "ARC" },
 ];
 
+function formatSyncAge(ms: number | null): string {
+  if (ms == null) return "—";
+  const delta = Math.max(0, Date.now() - ms);
+  if (delta < 5000) return "live";
+  if (delta < 60_000) return `${Math.round(delta / 1000)}s`;
+  return `${Math.round(delta / 60_000)}m`;
+}
+
 export function Layout() {
-  const location = useLocation();
   const { theme } = useTheme();
-  const [stats, setStats] = useState<Stats | null>(null);
-
-  const refreshStats = useCallback(() => {
-    getStats().then(setStats).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    refreshStats();
-  }, [location.pathname, refreshStats]);
+  const { stats, lastSyncAt, syncing } = useLiveData();
 
   return (
     <div className="theme-root relative min-h-dvh">
@@ -48,6 +46,12 @@ export function Layout() {
             <p className="mt-2 font-mono text-[9px] t-faint">
               {theme.code} · {theme.name}
             </p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`status-dot ${syncing ? "status-dot-warn" : "status-dot-live"}`} />
+              <span className="font-mono text-[10px] t-faint">
+                SYNC::{syncing ? "pull" : formatSyncAge(lastSyncAt)}
+              </span>
+            </div>
           </div>
 
           <nav className="flex-1 space-y-1.5 p-3">
@@ -64,11 +68,19 @@ export function Layout() {
                   }`
                 }
               >
-                <Icon size={18} className="shrink-0" />
-                <span className="font-medium">{label}</span>
-                <span className="font-mono ml-auto text-[10px] tracking-wider opacity-60 group-hover:opacity-90">
-                  {code}
-                </span>
+                {({ isActive }) => (
+                  <>
+                    <Icon size={18} className="shrink-0" />
+                    <span className="font-medium">{label}</span>
+                    {to === "/" ? (
+                      <IngestNavBadge active={isActive} />
+                    ) : (
+                      <span className="font-mono ml-auto text-[10px] tracking-wider opacity-60 group-hover:opacity-90">
+                        {code}
+                      </span>
+                    )}
+                  </>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -145,11 +157,18 @@ export function Layout() {
               }`
             }
           >
-            <Icon size={20} />
-            <span className="mt-1">{label}</span>
+            {({ isActive }) => (
+              <>
+                <Icon size={20} />
+                <span className="mt-1">{label}</span>
+                {to === "/" && <IngestNavBadge active={isActive} compact />}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
+
+      <IngestHud />
     </div>
   );
 }

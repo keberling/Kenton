@@ -1,16 +1,18 @@
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { TechStatusChip } from "../components/TechMeta";
+import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
 import { deletePhoto, getPhotos, rematchAllPhotos } from "../lib/api";
 import type { Photo } from "../types";
 
 type Filter = "all" | "unassigned";
 
 export function PhotosPage() {
+  const { invalidate } = useLiveData();
   const [filter, setFilter] = useState<Filter>("all");
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [rematching, setRematching] = useState(false);
@@ -22,19 +24,18 @@ export function PhotosPage() {
       .catch(() => setPhotos([]));
   }, [filter]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useLivePoll(load, [filter]);
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Asset archive"
         title="Photo library"
-        description="Every field capture across all client deployments. Masonry layout · tap to enter cinematic viewer."
+        description="Every field capture across all client deployments. Masonry layout · tap to enter cinematic viewer · auto-refreshes live."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <TechStatusChip code="VIEW" label="masonry" tone="muted" />
+            <TechStatusChip code="LIVE" label="polling" tone="emerald" />
             <TechStatusChip code="CNT" label={`${photos.length} loaded`} tone="cyan" />
             <div className="neu-inset flex gap-1 rounded-xl p-1">
               {(["all", "unassigned"] as const).map((value) => (
@@ -68,6 +69,7 @@ export function PhotosPage() {
           onDelete={async (photoId) => {
             await deletePhoto(photoId);
             setLightboxIndex(null);
+            invalidate();
             load();
           }}
           emptyMessage={
@@ -89,7 +91,7 @@ export function PhotosPage() {
 
       {filter === "unassigned" && photos.length > 0 && (
         <p className="font-mono text-xs text-white/35">
-          Auto-matching runs on load.{" "}
+          Auto-matching runs on every sync.{" "}
           <button
             className="inline-flex items-center gap-1 text-cyan-400 transition hover:text-cyan-300 disabled:opacity-50"
             disabled={rematching}

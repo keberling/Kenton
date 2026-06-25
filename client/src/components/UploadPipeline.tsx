@@ -77,10 +77,10 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    if (!items.some((item) => item.phase === "processing")) return;
+    if (!active && !items.some((item) => item.phase === "processing")) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 200);
     return () => window.clearInterval(id);
-  }, [items]);
+  }, [active, items]);
 
   const totalBytes = items.reduce((sum, item) => sum + item.file.size, 0);
   const uploadedBytes = items.reduce((sum, item) => {

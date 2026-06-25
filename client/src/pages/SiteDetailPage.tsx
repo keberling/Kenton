@@ -1,27 +1,28 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, ChevronDown, Images, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { TechMeta, TechMetaRow } from "../components/TechMeta";
+import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
 import { deletePhoto, getPhotos, getSite, regeocodeSite } from "../lib/api";
 import { formatCoords, shortId } from "../lib/format";
 import type { Photo, Site } from "../types";
 
 export function SiteDetailPage() {
+  const { invalidate } = useLiveData();
   const { id } = useParams<{ id: string }>();
   const [site, setSite] = useState<Site | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const load = useCallback(() => {
     if (!id) return;
-    setLoading(true);
     Promise.all([getSite(id), getPhotos({ siteId: id })])
       .then(([nextSite, nextPhotos]) => {
         setSite(nextSite);
@@ -31,14 +32,12 @@ export function SiteDetailPage() {
         setSite(null);
         setPhotos([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => setInitialLoad(false));
   }, [id]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useLivePoll(load, [id], Boolean(id));
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <div className="panel flex items-center justify-center rounded-2xl px-6 py-32">
         <div className="text-center">
@@ -69,7 +68,6 @@ export function SiteDetailPage() {
         BACK TO DEPLOYMENTS
       </Link>
 
-      {/* Cinematic hero */}
       <motion.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -89,7 +87,7 @@ export function SiteDetailPage() {
         <div className="relative p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="hud-label text-violet-400/80">Client deployment</p>
+              <p className="hud-label text-violet-400/80">Client deployment · live sync</p>
               <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
                 {site.name}
               </h2>
@@ -121,6 +119,7 @@ export function SiteDetailPage() {
                 try {
                   const result = await regeocodeSite(site.id);
                   setMessage(`Fix updated via ${result.geocodeSource}. ${result.matchedPhotos} assets matched.`);
+                  invalidate();
                   load();
                 } catch {
                   setMessage("Geocode failed.");
@@ -145,12 +144,11 @@ export function SiteDetailPage() {
         </div>
       </motion.section>
 
-      {/* Bento gallery */}
       <section className="space-y-4">
         <div>
           <p className="hud-label">Install documentation</p>
           <h3 className="font-display text-2xl font-bold text-white">Gallery</h3>
-          <p className="mt-1 text-sm text-white/40">Tap any asset · swipe in viewer · filmstrip navigation</p>
+          <p className="mt-1 text-sm text-white/40">Tap any asset · swipe in viewer · filmstrip navigation · live refresh</p>
         </div>
 
         <PhotoGrid
@@ -161,6 +159,7 @@ export function SiteDetailPage() {
           onDelete={async (photoId) => {
             await deletePhoto(photoId);
             setLightboxIndex(null);
+            invalidate();
             load();
           }}
           emptyMessage="No assets at this deployment yet. Capture photos on-site — they'll auto-route here when in range."

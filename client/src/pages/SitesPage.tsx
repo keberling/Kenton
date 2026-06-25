@@ -1,14 +1,16 @@
 import { motion } from "framer-motion";
 import { ChevronRight, Images, MapPinned, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
+import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
 import { createSite, deleteSite, getSites, regeocodeSite } from "../lib/api";
 import { formatRadiusMeters, shortId } from "../lib/format";
 import type { Site } from "../types";
 
 export function SitesPage() {
+  const { invalidate } = useLiveData();
   const navigate = useNavigate();
   const [sites, setSites] = useState<Site[]>([]);
   const [name, setName] = useState("");
@@ -22,9 +24,7 @@ export function SitesPage() {
     getSites().then(setSites).catch(() => setError("Could not load deployments"));
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useLivePoll(load, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +43,7 @@ export function SitesPage() {
           ? `Node online via ${result.geocodeSource ?? "geocoder"}. ${result.matchedPhotos} asset${result.matchedPhotos === 1 ? "" : "s"} routed.`
           : `Node created — geocode failed: ${result.geocodeError ?? "unknown"}`,
       );
+      invalidate();
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create deployment");
@@ -54,6 +55,7 @@ export function SitesPage() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this deployment? Photos return to the queue.")) return;
     await deleteSite(id);
+    invalidate();
     load();
   };
 
@@ -64,7 +66,7 @@ export function SitesPage() {
       <PageHeader
         eyebrow="Deployment registry"
         title="Client sites"
-        description="AV & IT install locations across your clients. GPS-tagged field photos auto-route to deployments within range."
+        description="AV & IT install locations across your clients. GPS-tagged field photos auto-route to deployments within range. Registry syncs live."
       />
 
       <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
@@ -129,7 +131,6 @@ export function SitesPage() {
                   onClick={() => navigate(`/sites/${site.id}`)}
                   className="group relative w-full text-left"
                 >
-                  {/* Preview mosaic background */}
                   {site.previewPhotos && site.previewPhotos.length > 0 && (
                     <div className="relative h-36 overflow-hidden sm:h-44">
                       <div className="absolute inset-0 grid grid-cols-4 grid-rows-2 gap-0.5">
@@ -196,6 +197,7 @@ export function SitesPage() {
                         try {
                           const result = await regeocodeSite(site.id);
                           setMessage(`Fix updated. ${result.matchedPhotos} assets routed.`);
+                          invalidate();
                           load();
                         } catch (err) {
                           setError(err instanceof Error ? err.message : "Geocode failed");
