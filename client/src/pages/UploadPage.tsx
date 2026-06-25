@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Camera, Loader2, RefreshCw, Upload, Zap } from "lucide-react";
+import { ImagePlus, Loader2, RefreshCw, Upload, Zap } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
@@ -11,8 +11,13 @@ import { useIngest } from "../lib/IngestContext";
 import { useLiveData } from "../lib/LiveDataContext";
 import { formatBytes } from "../lib/format";
 
+/** Explicit image types — avoids mobile browsers treating `image/*` as camera capture. */
+const GALLERY_ACCEPT =
+  "image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp,image/gif";
+
 export function UploadPage() {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const { stats } = useLiveData();
   const { config, user, login, signingIn } = useAuth();
@@ -31,6 +36,11 @@ export function UploadPage() {
   const handleFiles = (files: FileList | File[]) => {
     clearError();
     void startIngest(files);
+  };
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files?.length) handleFiles(event.target.files);
+    event.target.value = "";
   };
 
   const totalQueuedBytes = queue.reduce((s, i) => s + i.file.size, 0);
@@ -108,22 +118,27 @@ export function UploadPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-400/5 via-transparent to-violet-500/5" />
 
         <input
-          ref={inputRef}
+          ref={galleryInputRef}
           type="file"
-          accept="image/*"
+          accept={GALLERY_ACCEPT}
           multiple
           className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) handleFiles(e.target.files);
-            e.target.value = "";
-          }}
+          onChange={handleInputChange}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleInputChange}
         />
 
         <div className="neu-raised-sm relative mx-auto flex h-20 w-20 items-center justify-center rounded-2xl">
           {uploading ? (
             <Loader2 size={32} className="animate-spin text-cyan-300" />
           ) : (
-            <Camera size={32} className="text-cyan-300" />
+            <ImagePlus size={32} className="text-cyan-300" />
           )}
         </div>
 
@@ -147,24 +162,20 @@ export function UploadPage() {
 
         <div className="relative mt-8 flex flex-wrap justify-center gap-3">
           <button
-            onClick={() => {
-              inputRef.current?.removeAttribute("capture");
-              inputRef.current?.click();
-            }}
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
             className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
           >
             <Upload size={16} />
-            {uploading ? "Add to queue" : "Select photos"}
+            {uploading ? "Add to queue" : "Photo library"}
           </button>
           <button
-            onClick={() => {
-              inputRef.current?.setAttribute("capture", "environment");
-              inputRef.current?.click();
-            }}
-            className="btn-ghost inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            className="btn-ghost hidden items-center gap-2 rounded-xl px-6 py-3 text-sm sm:inline-flex"
           >
             <Zap size={16} />
-            Capture now
+            Take photo
           </button>
         </div>
 
