@@ -58,10 +58,10 @@ export function UploadPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className={`panel relative overflow-hidden rounded-2xl border-2 border-dashed p-8 text-center transition sm:p-12 ${
+        className={`panel panel-interactive window relative overflow-hidden rounded-2xl border-2 border-dashed p-8 text-center sm:p-12 ${
           dragOver
-            ? "border-cyan-400/60 bg-cyan-400/5"
-            : "border-white/10"
+            ? "border-cyan-400/40"
+            : "border-white/[0.08]"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -89,7 +89,7 @@ export function UploadPage() {
           }}
         />
 
-        <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/30">
+        <div className="neu-raised-sm relative mx-auto flex h-20 w-20 items-center justify-center rounded-2xl">
           {uploading ? (
             <Loader2 size={32} className="animate-spin text-cyan-300" />
           ) : (
@@ -135,7 +135,7 @@ export function UploadPage() {
       )}
 
       {results.length > 0 && (
-        <section className="panel rounded-2xl p-5">
+        <section className="panel window rounded-2xl p-5">
           <p className="hud-label text-emerald-400/80">Ingest complete</p>
           <h3 className="font-display mt-1 text-xl font-semibold text-white">
             {results.length} asset{results.length === 1 ? "" : "s"} processed
@@ -147,7 +147,7 @@ export function UploadPage() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-4 rounded-xl bg-black/30 p-3 ring-1 ring-white/5"
+                className="neu-inset hover-shake flex items-center gap-4 rounded-xl p-3"
               >
                 <img src={photo.url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10" />
                 <div className="min-w-0 flex-1">

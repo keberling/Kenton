@@ -17,7 +17,7 @@ export function SiteGeocodeInfo({ site, detailed = false }: SiteGeocodeInfoProps
   const coords = formatCoords(site.lat, site.lng);
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl bg-black/30 p-4 ring-1 ring-white/5">
+    <div className="neu-inset mt-3 space-y-3 rounded-xl p-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <p className="hud-label">Geocoded fix</p>
@@ -85,7 +85,7 @@ export function SiteGeocodeInfo({ site, detailed = false }: SiteGeocodeInfoProps
           <p className="hud-label">Closest queue</p>
           <ul className="mt-2 space-y-2">
             {site.nearbyUnassigned.map((photo) => (
-              <li key={photo.photoId} className="rounded-lg bg-white/5 px-3 py-2 ring-1 ring-white/5">
+              <li key={photo.photoId} className="neu-raised-sm hover-shake rounded-lg px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="truncate text-sm text-white/80">{photo.originalName}</span>
                   <span className={`font-mono text-xs ${photo.withinRadius ? "text-emerald-400" : "text-amber-400"}`}>

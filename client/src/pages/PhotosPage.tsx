@@ -32,15 +32,15 @@ export function PhotosPage() {
         title="Photo library"
         description="Every field capture across all client deployments. Masonry layout · tap to enter cinematic viewer."
         action={
-          <div className="flex gap-1 rounded-xl bg-black/40 p-1 ring-1 ring-white/10">
+          <div className="neu-inset flex gap-1 rounded-xl p-1">
             {(["all", "unassigned"] as const).map((value) => (
               <button
                 key={value}
                 onClick={() => setFilter(value)}
                 className={`rounded-lg px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider transition ${
                   filter === value
-                    ? "bg-cyan-400/15 text-cyan-300 ring-1 ring-cyan-400/30"
-                    : "text-white/40 hover:text-white/70"
+                    ? "neu-raised-sm text-cyan-300/95"
+                    : "text-white/38 hover-shake hover:text-white/68"
                 }`}
               >
                 {value === "all" ? "All assets" : "Queued"}

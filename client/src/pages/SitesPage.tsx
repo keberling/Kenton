@@ -68,7 +68,7 @@ export function SitesPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
-        <section className="panel h-fit rounded-2xl p-5">
+        <section className="panel window h-fit rounded-2xl p-5">
           <p className="hud-label text-cyan-400/70">New deployment</p>
           <h3 className="font-display mt-1 text-xl font-bold text-white">Register site</h3>
           <p className="mt-2 text-sm text-white/40">
@@ -122,7 +122,7 @@ export function SitesPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="panel panel-interactive overflow-hidden rounded-2xl"
+                className="panel panel-interactive window overflow-hidden rounded-2xl"
               >
                 <button
                   type="button"
@@ -166,7 +166,7 @@ export function SitesPage() {
                         <p className="mt-1 text-sm text-white/45">{site.address}</p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/15 px-3 py-1.5 font-mono text-xs text-violet-300 ring-1 ring-violet-400/25">
+                        <span className="glass-badge inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-xs text-violet-300">
                           <Images size={13} />
                           {site.photoCount ?? 0}
                         </span>

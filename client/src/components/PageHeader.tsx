@@ -12,7 +12,7 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
     <motion.header
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-wrap items-end justify-between gap-4"
+      className="window flex flex-wrap items-end justify-between gap-4"
     >
       <div>
         <p className="hud-label text-cyan-400/80">{eyebrow}</p>

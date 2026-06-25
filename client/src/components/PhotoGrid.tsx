@@ -37,7 +37,7 @@ export function PhotoGrid({
   if (photos.length === 0) {
     return (
       <div className="panel flex flex-col items-center justify-center rounded-2xl px-6 py-24 text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10">
+        <div className="neu-inset mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
           <Crosshair size={28} className="text-white/25" />
         </div>
         <p className="text-white/40">{emptyMessage}</p>
@@ -55,7 +55,7 @@ export function PhotoGrid({
           initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.45 }}
-          className={`panel panel-interactive group relative overflow-hidden rounded-2xl ${
+          className={`panel panel-interactive photo-tile group relative ${
             layout === "masonry" ? "masonry-item" : bentoClass(index, photos.length)
           }`}
         >
@@ -89,19 +89,19 @@ export function PhotoGrid({
             {/* Top badges */}
             <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
               {photo.lat != null && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[10px] text-emerald-300/90 ring-1 ring-emerald-400/20 backdrop-blur-sm">
+                <span className="glass-badge inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[10px] text-emerald-300/90">
                   <Satellite size={10} />
                   GPS
                 </span>
               )}
               {showSiteLabel && (
                 photo.siteName ? (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-500/25 px-2 py-0.5 font-mono text-[10px] text-violet-200 ring-1 ring-violet-400/25 backdrop-blur-sm">
+                  <span className="glass-badge inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[10px] text-violet-200">
                     <MapPin size={10} />
                     {photo.siteName}
                   </span>
                 ) : (
-                  <span className="rounded-md bg-amber-500/20 px-2 py-0.5 font-mono text-[10px] text-amber-200/90 ring-1 ring-amber-400/20 backdrop-blur-sm">
+                  <span className="glass-badge rounded-md px-2 py-0.5 font-mono text-[10px] text-amber-200/90">
                     UNASSIGNED
                   </span>
                 )
@@ -111,7 +111,7 @@ export function PhotoGrid({
             {/* Actions */}
             <div className="absolute right-3 top-3 flex gap-1.5 opacity-0 transition group-hover:opacity-100">
               {onPhotoClick && (
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white/80 ring-1 ring-white/15 backdrop-blur-sm">
+                <span className="neu-raised-sm flex h-8 w-8 items-center justify-center rounded-lg text-white/80">
                   <Expand size={14} />
                 </span>
               )}
@@ -121,7 +121,7 @@ export function PhotoGrid({
                     event.stopPropagation();
                     onDelete(photo.id);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/20 text-rose-300 ring-1 ring-rose-400/30 backdrop-blur-sm transition hover:bg-rose-500/40"
+                  className="neu-raised-sm flex h-8 w-8 items-center justify-center rounded-lg text-rose-300 transition hover:text-rose-200"
                   aria-label="Delete photo"
                 >
                   <Trash2 size={14} />

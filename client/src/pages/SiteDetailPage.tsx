@@ -71,7 +71,7 @@ export function SiteDetailPage() {
       <motion.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="panel relative overflow-hidden rounded-2xl"
+        className="panel window relative overflow-hidden rounded-2xl"
       >
         {heroPhoto && (
           <>
@@ -93,7 +93,7 @@ export function SiteDetailPage() {
               </h2>
               <p className="mt-2 max-w-xl text-white/50">{site.address}</p>
               <div className="mt-4 flex flex-wrap items-center gap-4">
-                <span className="inline-flex items-center gap-2 rounded-full bg-cyan-400/10 px-3 py-1.5 font-mono text-xs text-cyan-300 ring-1 ring-cyan-400/25">
+                <span className="glass-badge inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-xs text-cyan-300">
                   <Images size={14} />
                   {photos.length} ASSET{photos.length === 1 ? "" : "S"}
                 </span>

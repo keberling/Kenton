@@ -107,7 +107,11 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
               initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="max-h-[calc(100dvh-14rem)] max-w-full rounded-lg object-contain shadow-2xl shadow-cyan-500/10 ring-1 ring-white/10 lg:max-h-[calc(100dvh-11rem)]"
+              className="max-h-[calc(100dvh-14rem)] max-w-full rounded-xl object-contain lg:max-h-[calc(100dvh-11rem)]"
+            style={{
+              boxShadow:
+                "12px 14px 32px -8px rgba(0,0,0,0.7), -6px -6px 20px -8px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.1)",
+            }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.15}
@@ -129,7 +133,7 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
           </div>
 
           {/* Metadata panel */}
-          <aside className="panel m-4 mt-0 shrink-0 rounded-2xl p-4 lg:m-6 lg:mt-0 lg:w-72">
+          <aside className="panel window m-4 mt-0 shrink-0 rounded-2xl p-4 lg:m-6 lg:mt-0 lg:w-72">
             <p className="hud-label">Metadata</p>
             <h3 className="mt-2 truncate font-display text-lg font-semibold text-white">{photo.originalName}</h3>
             <dl className="mt-4 space-y-3 font-mono text-xs">
