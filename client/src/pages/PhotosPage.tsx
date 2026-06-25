@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { PhotoGrid } from "../components/PhotoGrid";
+import { PhotoLightbox } from "../components/PhotoLightbox";
 import { deletePhoto, getPhotos, rematchAllPhotos } from "../lib/api";
 import type { Photo } from "../types";
 
@@ -9,6 +10,7 @@ export function PhotosPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [rematching, setRematching] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const load = useCallback(() => {
     getPhotos(filter === "unassigned" ? { unassigned: true } : undefined)
@@ -44,8 +46,10 @@ export function PhotosPage() {
 
       <PhotoGrid
         photos={photos}
+        onPhotoClick={(_photo, index) => setLightboxIndex(index)}
         onDelete={async (photoId) => {
           await deletePhoto(photoId);
+          setLightboxIndex(null);
           load();
         }}
         emptyMessage={
@@ -54,6 +58,15 @@ export function PhotosPage() {
             : "No photos uploaded yet. Head to Upload to add field photos."
         }
       />
+
+      {lightboxIndex != null && (
+        <PhotoLightbox
+          photos={photos}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onChangeIndex={setLightboxIndex}
+        />
+      )}
 
       {filter === "unassigned" && photos.length > 0 && (
         <p className="text-sm text-stone-500">

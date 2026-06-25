@@ -169,6 +169,18 @@ class Store {
     return rows.map(rowToPhoto);
   }
 
+  listSitePreviewUrls(siteId: string, limit = 4): string[] {
+    const rows = db.prepare(`
+      SELECT filename
+      FROM photos
+      WHERE site_id = ?
+      ORDER BY COALESCE(taken_at, uploaded_at) DESC
+      LIMIT ?
+    `).all(siteId, limit) as { filename: string }[];
+
+    return rows.map((row) => `/uploads/${row.filename}`);
+  }
+
   listUnassignedPhotosWithGps(): Photo[] {
     const rows = db.prepare(`
       SELECT p.*, NULL AS site_name

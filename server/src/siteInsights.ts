@@ -66,5 +66,12 @@ export function computeSiteInsights(site: Site): SiteInsights {
 }
 
 export function enrichSite(site: Site): Site {
-  return { ...site, ...computeSiteInsights(site) };
+  const previewPhotos =
+    (site.photoCount ?? 0) > 0 ? store.listSitePreviewUrls(site.id) : [];
+
+  return {
+    ...site,
+    previewPhotos,
+    ...computeSiteInsights(site),
+  };
 }

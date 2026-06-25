@@ -18,6 +18,7 @@ export interface Site {
   createdAt: number;
   updatedAt: number;
   photoCount?: number;
+  previewPhotos?: string[];
   nearestUnassigned?: NearbyPhotoInsight | null;
   unassignedWithinRadius?: number;
   unassignedWithGps?: number;
