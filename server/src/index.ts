@@ -15,8 +15,11 @@ import {
   rematchAllUnassignedPhotos,
   syncExistingPhotoMatches,
 } from "./matcher.js";
+import { attachAuth, mergeProfilePatch, requireAuthForUpload } from "./auth/middleware.js";
+import { publicAuthConfig } from "./auth/microsoft.js";
 import { enrichSite } from "./siteInsights.js";
 import { store } from "./store.js";
+import type { AuthUser } from "./types.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -31,6 +34,7 @@ const httpServer = createServer(app);
 
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
+app.use(attachAuth);
 app.use("/uploads", express.static(uploadDir));
 
 const storage = multer.diskStorage({
@@ -52,6 +56,44 @@ const upload = multer({
     }
     cb(new Error("Only image uploads are allowed"));
   },
+});
+
+app.get("/api/auth/config", (_req, res) => {
+  res.json(publicAuthConfig());
+});
+
+app.get("/api/auth/me", (req, res) => {
+  if (!req.authUser) {
+    res.status(401).json({ error: "Not signed in" });
+    return;
+  }
+  res.json({ user: req.authUser });
+});
+
+app.post("/api/auth/sync", (req, res) => {
+  if (!req.authUser) {
+    res.status(401).json({ error: "Not signed in" });
+    return;
+  }
+
+  const body = req.body as Partial<AuthUser>;
+  const patch: Partial<AuthUser> = {};
+
+  if (typeof body.displayName === "string" && body.displayName.trim()) {
+    patch.displayName = body.displayName.trim();
+  }
+  if (typeof body.email === "string") patch.email = body.email.trim() || null;
+  if (typeof body.preferredUsername === "string") {
+    patch.preferredUsername = body.preferredUsername.trim() || null;
+  }
+  if (typeof body.jobTitle === "string") patch.jobTitle = body.jobTitle.trim() || null;
+  if (typeof body.department === "string") patch.department = body.department.trim() || null;
+  if (typeof body.officeLocation === "string") {
+    patch.officeLocation = body.officeLocation.trim() || null;
+  }
+
+  const user = mergeProfilePatch(req.authUser, patch);
+  res.json({ user });
 });
 
 app.get("/api/health", (_req, res) => {
@@ -182,7 +224,7 @@ app.get("/api/photos/:id", (req, res) => {
   res.json(photo);
 });
 
-app.post("/api/photos/upload", upload.array("photos", 20), async (req, res) => {
+app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20), async (req, res) => {
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) {
     res.status(400).json({ error: "No photos uploaded" });
@@ -205,6 +247,7 @@ app.post("/api/photos/upload", upload.array("photos", 20), async (req, res) => {
       takenAt: meta.takenAt,
       width: meta.width,
       height: meta.height,
+      uploadedBy: req.authUser ?? null,
     });
 
     const hasGps = meta.lat != null && meta.lng != null;

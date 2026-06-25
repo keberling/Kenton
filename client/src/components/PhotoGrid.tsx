@@ -1,7 +1,14 @@
 import { motion } from "framer-motion";
-import { Crosshair, Expand, MapPin, Satellite, Trash2 } from "lucide-react";
+import { Crosshair, Expand, MapPin, Satellite, Trash2, UserRound } from "lucide-react";
 import type { Photo } from "../types";
-import { formatCoords, formatDate, formatMimeShort, formatResolution, shortId } from "../lib/format";
+import {
+  formatCoords,
+  formatDate,
+  formatMimeShort,
+  formatResolution,
+  formatUploaderShort,
+  shortId,
+} from "../lib/format";
 
 interface PhotoGridProps {
   photos: Photo[];
@@ -143,6 +150,12 @@ export function PhotoGrid({
                 <span>{formatDate(photo.takenAt ?? photo.uploadedAt)}</span>
                 {formatCoords(photo.lat, photo.lng) && (
                   <span className="text-cyan-400/70">{formatCoords(photo.lat, photo.lng)}</span>
+                )}
+                {formatUploaderShort(photo.uploader) && (
+                  <span className="inline-flex items-center gap-1 text-cyan-300/75">
+                    <UserRound size={10} />
+                    {formatUploaderShort(photo.uploader)}
+                  </span>
                 )}
               </div>
             </div>

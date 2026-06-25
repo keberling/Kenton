@@ -1,6 +1,7 @@
 import { Activity, Cpu, Images, MapPinned, Radio, Upload } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
+import { AuthPanel } from "./AuthPanel";
 import { IngestHud, IngestNavBadge } from "./IngestHud";
 import { ThemePicker } from "./ThemePicker";
 import { useLiveData } from "../lib/LiveDataContext";
@@ -110,6 +111,8 @@ export function Layout() {
             </div>
           )}
 
+          <AuthPanel />
+
           <ThemePicker />
         </aside>
 
@@ -134,6 +137,7 @@ export function Layout() {
                     <span className="font-mono text-xs tabular-nums t-muted">{stats.totalPhotos} assets</span>
                   </div>
                 )}
+                <AuthPanel compact />
                 <ThemePicker compact />
               </div>
             </div>

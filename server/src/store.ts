@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { siteMatchRadiusM } from "./config.js";
 import { db } from "./db.js";
-import type { Photo, Site } from "./types.js";
+import type { AuthUser, Photo, PhotoUploader, Site, User } from "./types.js";
 
 interface SiteRow {
   id: string;
@@ -13,6 +13,20 @@ interface SiteRow {
   geocode_source: string | null;
   created_at: number;
   updated_at: number;
+}
+
+interface UserRow {
+  id: string;
+  microsoft_oid: string;
+  tenant_id: string;
+  email: string | null;
+  display_name: string;
+  preferred_username: string | null;
+  job_title: string | null;
+  department: string | null;
+  office_location: string | null;
+  first_seen_at: number;
+  last_seen_at: number;
 }
 
 interface PhotoRow {
@@ -28,6 +42,46 @@ interface PhotoRow {
   width: number | null;
   height: number | null;
   site_name?: string | null;
+  uploaded_by_user_id?: string | null;
+  uploader_microsoft_oid?: string | null;
+  uploader_display_name?: string | null;
+  uploader_email?: string | null;
+  uploader_preferred_username?: string | null;
+  uploader_job_title?: string | null;
+  uploader_department?: string | null;
+  uploader_office_location?: string | null;
+}
+
+function rowToUser(row: UserRow): User {
+  return {
+    id: row.id,
+    microsoftOid: row.microsoft_oid,
+    tenantId: row.tenant_id,
+    email: row.email,
+    displayName: row.display_name,
+    preferredUsername: row.preferred_username,
+    jobTitle: row.job_title,
+    department: row.department,
+    officeLocation: row.office_location,
+    firstSeenAt: row.first_seen_at,
+    lastSeenAt: row.last_seen_at,
+  };
+}
+
+function uploaderFromRow(row: PhotoRow): PhotoUploader | null {
+  if (!row.uploaded_by_user_id || !row.uploader_display_name || !row.uploader_microsoft_oid) {
+    return null;
+  }
+  return {
+    userId: row.uploaded_by_user_id,
+    microsoftOid: row.uploader_microsoft_oid,
+    displayName: row.uploader_display_name,
+    email: row.uploader_email ?? null,
+    preferredUsername: row.uploader_preferred_username ?? null,
+    jobTitle: row.uploader_job_title ?? null,
+    department: row.uploader_department ?? null,
+    officeLocation: row.uploader_office_location ?? null,
+  };
 }
 
 function rowToSite(row: SiteRow, photoCount = 0): Site {
@@ -60,10 +114,111 @@ function rowToPhoto(row: PhotoRow): Photo {
     width: row.width,
     height: row.height,
     url: `/uploads/${row.filename}`,
+    uploader: uploaderFromRow(row),
+  };
+}
+
+function uploaderSnapshot(user: User): {
+  uploadedByUserId: string;
+  uploaderMicrosoftOid: string;
+  uploaderDisplayName: string;
+  uploaderEmail: string | null;
+  uploaderPreferredUsername: string | null;
+  uploaderJobTitle: string | null;
+  uploaderDepartment: string | null;
+  uploaderOfficeLocation: string | null;
+} {
+  return {
+    uploadedByUserId: user.id,
+    uploaderMicrosoftOid: user.microsoftOid,
+    uploaderDisplayName: user.displayName,
+    uploaderEmail: user.email,
+    uploaderPreferredUsername: user.preferredUsername,
+    uploaderJobTitle: user.jobTitle,
+    uploaderDepartment: user.department,
+    uploaderOfficeLocation: user.officeLocation,
   };
 }
 
 class Store {
+  getUserByMicrosoftOid(microsoftOid: string): User | null {
+    const row = db
+      .prepare(`SELECT * FROM users WHERE microsoft_oid = ?`)
+      .get(microsoftOid) as UserRow | undefined;
+    return row ? rowToUser(row) : null;
+  }
+
+  getUser(id: string): User | null {
+    const row = db.prepare(`SELECT * FROM users WHERE id = ?`).get(id) as UserRow | undefined;
+    return row ? rowToUser(row) : null;
+  }
+
+  upsertUser(input: AuthUser): User {
+    const now = Date.now();
+    const existing = this.getUserByMicrosoftOid(input.microsoftOid);
+
+    if (existing) {
+      db.prepare(`
+        UPDATE users SET
+          tenant_id = ?,
+          email = ?,
+          display_name = ?,
+          preferred_username = ?,
+          job_title = ?,
+          department = ?,
+          office_location = ?,
+          last_seen_at = ?
+        WHERE id = ?
+      `).run(
+        input.tenantId,
+        input.email,
+        input.displayName,
+        input.preferredUsername,
+        input.jobTitle,
+        input.department,
+        input.officeLocation,
+        now,
+        existing.id,
+      );
+      return this.getUser(existing.id)!;
+    }
+
+    const row: UserRow = {
+      id: uuid(),
+      microsoft_oid: input.microsoftOid,
+      tenant_id: input.tenantId,
+      email: input.email,
+      display_name: input.displayName,
+      preferred_username: input.preferredUsername,
+      job_title: input.jobTitle,
+      department: input.department,
+      office_location: input.officeLocation,
+      first_seen_at: now,
+      last_seen_at: now,
+    };
+
+    db.prepare(`
+      INSERT INTO users (
+        id, microsoft_oid, tenant_id, email, display_name, preferred_username,
+        job_title, department, office_location, first_seen_at, last_seen_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      row.id,
+      row.microsoft_oid,
+      row.tenant_id,
+      row.email,
+      row.display_name,
+      row.preferred_username,
+      row.job_title,
+      row.department,
+      row.office_location,
+      row.first_seen_at,
+      row.last_seen_at,
+    );
+
+    return rowToUser(row);
+  }
+
   listSites(): Site[] {
     const rows = db.prepare(`
       SELECT s.*, COUNT(p.id) AS photo_count
@@ -210,7 +365,9 @@ class Store {
     width: number | null;
     height: number | null;
     siteId?: string | null;
+    uploadedBy?: User | null;
   }): Photo {
+    const uploader = input.uploadedBy ? uploaderSnapshot(input.uploadedBy) : null;
     const row: PhotoRow = {
       id: uuid(),
       filename: input.filename,
@@ -223,13 +380,24 @@ class Store {
       uploaded_at: Date.now(),
       width: input.width,
       height: input.height,
+      uploaded_by_user_id: uploader?.uploadedByUserId ?? null,
+      uploader_microsoft_oid: uploader?.uploaderMicrosoftOid ?? null,
+      uploader_display_name: uploader?.uploaderDisplayName ?? null,
+      uploader_email: uploader?.uploaderEmail ?? null,
+      uploader_preferred_username: uploader?.uploaderPreferredUsername ?? null,
+      uploader_job_title: uploader?.uploaderJobTitle ?? null,
+      uploader_department: uploader?.uploaderDepartment ?? null,
+      uploader_office_location: uploader?.uploaderOfficeLocation ?? null,
     };
 
     db.prepare(`
       INSERT INTO photos (
         id, filename, original_name, mime_type, site_id,
-        lat, lng, taken_at, uploaded_at, width, height
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        lat, lng, taken_at, uploaded_at, width, height,
+        uploaded_by_user_id, uploader_microsoft_oid, uploader_display_name,
+        uploader_email, uploader_preferred_username, uploader_job_title,
+        uploader_department, uploader_office_location
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       row.id,
       row.filename,
@@ -242,6 +410,14 @@ class Store {
       row.uploaded_at,
       row.width,
       row.height,
+      row.uploaded_by_user_id ?? null,
+      row.uploader_microsoft_oid ?? null,
+      row.uploader_display_name ?? null,
+      row.uploader_email ?? null,
+      row.uploader_preferred_username ?? null,
+      row.uploader_job_title ?? null,
+      row.uploader_department ?? null,
+      row.uploader_office_location ?? null,
     );
 
     return rowToPhoto(row);

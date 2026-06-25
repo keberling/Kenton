@@ -25,6 +25,34 @@ export interface Site {
   nearbyUnassigned?: NearbyPhotoInsight[];
 }
 
+export interface AuthUser {
+  microsoftOid: string;
+  tenantId: string;
+  displayName: string;
+  email: string | null;
+  preferredUsername: string | null;
+  jobTitle: string | null;
+  department: string | null;
+  officeLocation: string | null;
+}
+
+export interface User extends AuthUser {
+  id: string;
+  firstSeenAt: number;
+  lastSeenAt: number;
+}
+
+export interface PhotoUploader {
+  userId: string;
+  microsoftOid: string;
+  displayName: string;
+  email: string | null;
+  preferredUsername: string | null;
+  jobTitle: string | null;
+  department: string | null;
+  officeLocation: string | null;
+}
+
 export interface Photo {
   id: string;
   filename: string;
@@ -39,6 +67,7 @@ export interface Photo {
   width: number | null;
   height: number | null;
   url: string;
+  uploader?: PhotoUploader | null;
 }
 
 export interface PhotoExif {

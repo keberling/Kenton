@@ -1,3 +1,5 @@
+import type { PhotoUploader } from "../types";
+
 export function formatDate(ts: number | null): string {
   if (!ts) return "Unknown date";
   return new Date(ts).toLocaleString([], {
@@ -63,6 +65,21 @@ export function formatResolution(width: number | null, height: number | null): s
 
 export function formatMimeShort(mime: string): string {
   return mime.replace("image/", "").toUpperCase() || "BIN";
+}
+
+export function formatUploaderShort(uploader: PhotoUploader | null | undefined): string | null {
+  if (!uploader) return null;
+  return uploader.displayName;
+}
+
+export function formatUploaderDetail(uploader: PhotoUploader | null | undefined): string | null {
+  if (!uploader) return null;
+  const parts = [uploader.displayName];
+  if (uploader.email) parts.push(uploader.email);
+  if (uploader.jobTitle) parts.push(uploader.jobTitle);
+  if (uploader.department) parts.push(uploader.department);
+  if (uploader.officeLocation) parts.push(uploader.officeLocation);
+  return parts.join(" · ");
 }
 
 export function geocodeSourceLabel(source: string | null | undefined): string {

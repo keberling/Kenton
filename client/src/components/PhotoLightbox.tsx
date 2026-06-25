@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, MapPin, Satellite, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Satellite, UserRound, X } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import type { Photo } from "../types";
-import { formatCoords, formatDate } from "../lib/format";
+import { formatCoords, formatDate, formatUploaderDetail } from "../lib/format";
 
 interface PhotoLightboxProps {
   photos: Photo[];
@@ -169,6 +169,15 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
                   <dt className="text-white/35">RESOLUTION</dt>
                   <dd className="mt-0.5 text-white/80">
                     {photo.width} × {photo.height}
+                  </dd>
+                </div>
+              )}
+              {formatUploaderDetail(photo.uploader) && (
+                <div>
+                  <dt className="text-white/35">OPERATOR</dt>
+                  <dd className="mt-0.5 inline-flex items-start gap-1.5 text-cyan-300">
+                    <UserRound size={12} className="mt-0.5 shrink-0" />
+                    <span>{formatUploaderDetail(photo.uploader)}</span>
                   </dd>
                 </div>
               )}

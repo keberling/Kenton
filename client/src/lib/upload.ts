@@ -1,4 +1,5 @@
 import type { Photo } from "../types";
+import { authHeaders } from "./auth/token";
 
 export interface UploadProgress {
   loaded: number;
@@ -6,10 +7,12 @@ export interface UploadProgress {
   percent: number;
 }
 
-export function uploadSinglePhoto(
+export async function uploadSinglePhoto(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<Photo> {
+  const headers = await authHeaders();
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const form = new FormData();
@@ -54,6 +57,9 @@ export function uploadSinglePhoto(
     xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
 
     xhr.open("POST", "/api/photos/upload");
+    for (const [key, value] of Object.entries(headers)) {
+      xhr.setRequestHeader(key, value);
+    }
     xhr.send(form);
   });
 }

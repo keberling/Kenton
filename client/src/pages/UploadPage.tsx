@@ -5,6 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
 import { UploadPipeline } from "../components/UploadPipeline";
+import { useAuth } from "../lib/AuthContext";
 import { useIngest } from "../lib/IngestContext";
 import { useLiveData } from "../lib/LiveDataContext";
 import { formatBytes } from "../lib/format";
@@ -13,6 +14,7 @@ export function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const { stats } = useLiveData();
+  const { config, user, login, signingIn } = useAuth();
   const {
     queue,
     batchId,
@@ -48,6 +50,23 @@ export function UploadPage() {
       />
 
       {stats && <StatCards stats={stats} />}
+
+      {config.enabled && config.required && !user && (
+        <div className="panel window rounded-2xl border border-amber-400/20 px-5 py-4">
+          <p className="hud-label text-amber-300/80">Identity required</p>
+          <p className="mt-2 text-sm t-subtle">
+            Field ingest is tied to your Microsoft account. Sign in so every upload records who captured it,
+            with email, role, and department when available from Entra ID.
+          </p>
+          <button
+            onClick={() => void login()}
+            disabled={signingIn}
+            className="btn-primary mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm disabled:opacity-50"
+          >
+            {signingIn ? "Redirecting to Microsoft…" : "Sign in with Microsoft"}
+          </button>
+        </div>
+      )}
 
       <motion.section
         initial={{ opacity: 0, y: 16 }}

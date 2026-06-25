@@ -19,6 +19,7 @@ import {
   formatMimeShort,
   formatResolution,
   formatThroughput,
+  formatUploaderDetail,
   shortId,
 } from "../lib/format";
 import { TechMeta, TechMetaRow, TechStatusChip } from "./TechMeta";
@@ -282,6 +283,11 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
                             <span className="col-span-2 inline-flex items-center gap-1 text-violet-300/80">
                               <MapPin size={10} />
                               → {photo.siteName}
+                            </span>
+                          )}
+                          {formatUploaderDetail(photo.uploader) && (
+                            <span className="col-span-2 text-cyan-300/75">
+                              OP::{formatUploaderDetail(photo.uploader)}
                             </span>
                           )}
                         </div>

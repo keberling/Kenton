@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@azure/msal-browser": "^5.15.0",
     "framer-motion": "^12.6.3",
     "lucide-react": "^0.487.0",
     "react": "^19.0.0",

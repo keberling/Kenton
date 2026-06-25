@@ -43,6 +43,31 @@ npm run dev
 | `CLIENT_ORIGIN` | same-origin in prod | CORS origin for Coolify |
 | `SITE_MATCH_RADIUS_M` | `16093` (~10 mi) | GPS match radius in meters (existing sites at older defaults are upgraded on startup) |
 | `NOMINATIM_EMAIL` | — | Contact email for Nominatim (recommended in production) |
+| `AZURE_CLIENT_ID` | — | Microsoft Entra app (client) ID — enables SSO when set with tenant |
+| `AZURE_TENANT_ID` | — | Microsoft Entra directory (tenant) ID |
+| `AZURE_API_SCOPE` | `api://{clientId}/access_as_user` | API scope exposed in your app registration |
+| `AUTH_REQUIRED` | `true` when Azure is set | Require Microsoft sign-in for uploads |
+
+## Microsoft SSO (Entra ID)
+
+Kenton supports Microsoft single sign-on so every field upload is attributed to the signed-in operator. When Azure env vars are **not** set, the app works as before with anonymous uploads. When configured, uploads are tied to the Microsoft identity and snapshot on each photo (name, email, job title, department, office).
+
+### App registration (one-time)
+
+1. In [Microsoft Entra admin center](https://entra.microsoft.com), register a new application (**Single-page application**).
+2. Add redirect URI: your Kenton URL (e.g. `https://kenton.yourcompany.com` and `http://localhost:5173` for dev).
+3. Under **Expose an API**, set Application ID URI to `api://{client-id}` and add scope **`access_as_user`** (admin consent if required).
+4. Under **API permissions**, add **Microsoft Graph → User.Read** (delegated) for profile enrichment (job title, department).
+5. Copy **Application (client) ID** → `AZURE_CLIENT_ID`
+6. Copy **Directory (tenant) ID** → `AZURE_TENANT_ID`
+7. Deploy with both variables set on Coolify.
+
+### Behaviour
+
+- Sidebar shows Microsoft sign-in / signed-in operator telemetry.
+- Each uploaded photo stores operator snapshot fields at ingest time.
+- Archive, galleries, and ingest pipeline display **OPERATOR** metadata.
+- Set `AUTH_REQUIRED=false` temporarily to test SSO without blocking anonymous uploads.
 
 ## Docker / Coolify
 

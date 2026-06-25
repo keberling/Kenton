@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { UploadQueueItem } from "../components/UploadPipeline";
 import { createBatchId, uploadSinglePhoto } from "./upload";
+import { useAuth } from "./AuthContext";
 import { useLiveData } from "./LiveDataContext";
 
 function createQueueItem(file: File): UploadQueueItem {
@@ -43,6 +44,7 @@ interface IngestContextValue {
 const IngestContext = createContext<IngestContextValue | null>(null);
 
 export function IngestProvider({ children }: { children: React.ReactNode }) {
+  const { config, user } = useAuth();
   const { invalidate } = useLiveData();
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -132,6 +134,11 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      if (config.enabled && config.required && !user) {
+        setError("Sign in with Microsoft to upload photos.");
+        return;
+      }
+
       setError(null);
       const items = images.map(createQueueItem);
 
@@ -155,7 +162,7 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
 
       await ensureWorker();
     },
-    [batchId, ensureWorker, uploading],
+    [batchId, config.enabled, config.required, ensureWorker, uploading, user],
   );
 
   const clearError = useCallback(() => setError(null), []);
