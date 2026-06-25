@@ -1,5 +1,6 @@
 import { Activity, Cpu, Globe2, Images, MapPinned, Radio, Upload } from "lucide-react";
 import { MatchNavBadge } from "./MatchNavBadge";
+import { RescanMatchesButton } from "./RescanMatchesButton";
 import { NavLink, Outlet } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
 import { AuthPanel } from "./AuthPanel";
@@ -113,6 +114,7 @@ export function Layout() {
                   </div>
                 ))}
               </div>
+              <RescanMatchesButton variant="ghost" className="mt-3 w-full" />
             </div>
           )}
 
@@ -142,6 +144,7 @@ export function Layout() {
                     <span className="font-mono text-xs tabular-nums t-muted">{stats.totalPhotos} assets</span>
                   </div>
                 )}
+                <RescanMatchesButton variant="ghost" compact />
                 <AuthPanel compact />
                 <ThemePicker compact />
               </div>

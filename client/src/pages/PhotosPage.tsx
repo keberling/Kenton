@@ -3,6 +3,7 @@ import { ArrowRight, Radio } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { RescanMatchesButton } from "../components/RescanMatchesButton";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { TechStatusChip } from "../components/TechMeta";
@@ -46,6 +47,14 @@ export function PhotosPage() {
             <TechStatusChip code="VIEW" label="masonry" tone="muted" />
             <TechStatusChip code="LIVE" label="polling" tone="emerald" />
             <TechStatusChip code="CNT" label={`${photos.length} loaded`} tone="cyan" />
+            <RescanMatchesButton
+              variant="ghost"
+              compact
+              onMessage={() => {
+                invalidate();
+                load();
+              }}
+            />
             {(stats?.unassignedPhotos ?? 0) > 0 && (
               <Link
                 to="/match"

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { PageHeader } from "../components/PageHeader";
+import { RescanMatchesButton } from "../components/RescanMatchesButton";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
 import { createSite, deleteSite, getSites, regeocodeSite } from "../lib/api";
@@ -68,6 +69,12 @@ export function SitesPage() {
         eyebrow="Deployment registry"
         title="Client sites"
         description="AV & IT install locations across your clients. GPS-tagged field photos auto-route to deployments within range. Registry syncs live."
+        action={
+          <RescanMatchesButton
+            variant="ghost"
+            onMessage={(nextMessage) => setMessage(nextMessage)}
+          />
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-[340px_1fr]">

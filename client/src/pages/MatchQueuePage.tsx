@@ -1,14 +1,15 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, RefreshCw, Satellite } from "lucide-react";
+import { CheckCircle2, Satellite } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DeploymentRecommendationPanel } from "../components/DeploymentRecommendationPanel";
+import { RescanMatchesButton } from "../components/RescanMatchesButton";
 import { PageHeader } from "../components/PageHeader";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { PhotoMatchActions } from "../components/PhotoMatchActions";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
 import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
-import { getPhotos, getSites, rematchAllPhotos } from "../lib/api";
+import { getPhotos, getSites } from "../lib/api";
 import { formatCoords, formatDate, mapsUrl } from "../lib/format";
 import type { Photo, Site } from "../types";
 
@@ -16,7 +17,6 @@ export function MatchQueuePage() {
   const { invalidate } = useLiveData();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
-  const [rematching, setRematching] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -60,27 +60,6 @@ export function MatchQueuePage() {
     invalidate();
   };
 
-  const handleRematchAll = async () => {
-    setRematching(true);
-    setMessage(null);
-    try {
-      const result = await rematchAllPhotos();
-      if (result.matched > 0) {
-        setMessage(
-          `Auto-matched ${result.matched} asset${result.matched === 1 ? "" : "s"}.`,
-        );
-      } else {
-        setMessage("No new auto-matches — try manual assignment or register a deployment.");
-      }
-      load();
-      invalidate();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Rescan failed");
-    } finally {
-      setRematching(false);
-    }
-  };
-
   return (
     <div className="space-y-8">
       <PageHeader
@@ -95,15 +74,12 @@ export function MatchQueuePage() {
               tone={photos.length > 0 ? "amber" : "emerald"}
             />
             <TechStatusChip code="GPS" label={`${withGps.length} fix`} tone="cyan" />
-            <button
-              type="button"
-              disabled={rematching || withGps.length === 0}
-              onClick={() => void handleRematchAll()}
-              className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={rematching ? "animate-spin" : ""} />
-              {rematching ? "Scanning…" : "Retry all auto-match"}
-            </button>
+            <RescanMatchesButton
+              onMessage={(nextMessage) => {
+                setMessage(nextMessage);
+                load();
+              }}
+            />
           </div>
         }
       />
@@ -114,7 +90,7 @@ export function MatchQueuePage() {
           {[
             {
               step: "01",
-              title: "Retry auto-match",
+              title: "Rescan matches",
               body: "Strict ~100 m, soft to nearest site within ~2 mi when isolated (~1 mi cushion).",
             },
             {
