@@ -11,6 +11,7 @@ Interactive upload site for field techs to drop project photos. GPS metadata fro
 5. **Retroactive matching** — on server startup and when loading photos/sites, already-uploaded unassigned photos with GPS are matched against all geocoded job sites.
 6. **Deployment recommendations** — when uploads cannot match a site, Kenton suggests creating one and pre-fills the address from GPS (reverse geocode).
 7. **Live address search** — deployment registration uses Photon + OpenStreetMap autocomplete (no API key); full geocode on save uses the same stack as before.
+8. **Resilient ingest** — browser-side JPEG optimization, 256KB chunked uplink with per-chunk retry, IndexedDB offline vault, and auto-resume when connectivity returns.
 
 ## Stack
 

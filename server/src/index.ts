@@ -7,7 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { siteMatchRadiusM } from "./config.js";
 import { dataDir, dbPath } from "./db.js";
-import { extractPhotoMeta } from "./exif.js";
+import { ingestUploadedFile } from "./ingestPhoto.js";
 import { reverseGeocodeAddress, searchAddresses } from "./addressSearch.js";
 import { geocodeAddress } from "./geocode.js";
 import { buildDeploymentRecommendations } from "./siteRecommendations.js";
@@ -22,6 +22,14 @@ import { publicAuthConfig } from "./auth/microsoft.js";
 import { enrichSite } from "./siteInsights.js";
 import { store } from "./store.js";
 import type { AuthUser } from "./types.js";
+import {
+  cleanupStaleUploadSessions,
+  completeUploadSession,
+  createUploadSession,
+  getUploadSession,
+  writeUploadChunk,
+  type ClientPhotoMeta,
+} from "./uploadSessions.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -274,6 +282,120 @@ app.get("/api/photos/:id", (req, res) => {
   res.json(photo);
 });
 
+function parseClientMeta(raw: unknown): ClientPhotoMeta | null {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return parseClientMeta(JSON.parse(raw));
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw !== "object" || raw == null) return null;
+  const body = raw as Record<string, unknown>;
+  const num = (key: string) => {
+    const value = body[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+  };
+  return {
+    lat: num("lat"),
+    lng: num("lng"),
+    takenAt: num("takenAt"),
+    width: num("width"),
+    height: num("height"),
+    originalName: typeof body.originalName === "string" ? body.originalName : undefined,
+  };
+}
+
+app.post("/api/photos/upload/session", requireAuthForUpload, express.json(), (req, res) => {
+  const originalName = typeof req.body?.originalName === "string" ? req.body.originalName : "";
+  const mimeType = typeof req.body?.mimeType === "string" ? req.body.mimeType : "image/jpeg";
+  const totalSize = Number(req.body?.totalSize);
+  const totalChunks = Number(req.body?.totalChunks);
+
+  if (!originalName.trim() || !Number.isFinite(totalSize) || totalSize <= 0) {
+    res.status(400).json({ error: "originalName and totalSize are required" });
+    return;
+  }
+  if (!Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > 512) {
+    res.status(400).json({ error: "totalChunks must be between 1 and 512" });
+    return;
+  }
+
+  const session = createUploadSession({
+    originalName,
+    mimeType,
+    totalSize,
+    totalChunks,
+    clientMeta: parseClientMeta(req.body?.clientMeta),
+  });
+
+  res.status(201).json({
+    sessionId: session.id,
+    totalChunks: session.totalChunks,
+  });
+});
+
+app.put(
+  "/api/photos/upload/session/:id/chunk/:index",
+  requireAuthForUpload,
+  express.raw({ type: "*/*", limit: "512kb" }),
+  (req, res) => {
+    const sessionId = String(req.params.id);
+    const session = getUploadSession(sessionId);
+    if (!session) {
+      res.status(404).json({ error: "Upload session not found" });
+      return;
+    }
+
+    const index = Number(req.params.index);
+    if (!Number.isInteger(index) || index < 0 || index >= session.totalChunks) {
+      res.status(400).json({ error: "Invalid chunk index" });
+      return;
+    }
+
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from([]);
+    if (!body.length) {
+      res.status(400).json({ error: "Empty chunk body" });
+      return;
+    }
+
+    const updated = writeUploadChunk(sessionId, index, body);
+    if (!updated) {
+      res.status(500).json({ error: "Could not store chunk" });
+      return;
+    }
+
+    res.json({
+      received: updated.receivedChunks.length,
+      totalChunks: updated.totalChunks,
+    });
+  },
+);
+
+app.post("/api/photos/upload/session/:id/complete", requireAuthForUpload, async (req, res) => {
+  const assembled = completeUploadSession(String(req.params.id));
+  if (!assembled) {
+    res.status(400).json({ error: "Upload incomplete or session not found" });
+    return;
+  }
+
+  try {
+    const photo = await ingestUploadedFile({
+      filePath: assembled.filePath,
+      filename: assembled.filename,
+      originalName: assembled.originalName,
+      mimeType: assembled.mimeType,
+      sizeBytes: fs.statSync(assembled.filePath).size,
+      clientMeta: assembled.clientMeta,
+      uploadedBy: req.authUser ?? null,
+    });
+    res.status(201).json({ photo });
+  } catch {
+    res.status(500).json({ error: "Could not ingest uploaded photo" });
+  }
+});
+
 app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20), async (req, res) => {
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) {
@@ -281,40 +403,24 @@ app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20),
     return;
   }
 
+  const clientMeta = parseClientMeta(
+    typeof req.body?.clientMeta === "string" ? req.body.clientMeta : req.body?.clientMeta,
+  );
+
   const results = [];
 
   for (const file of files) {
-    const ingestStart = Date.now();
     const filePath = path.join(uploadDir, file.filename);
-    const meta = await extractPhotoMeta(filePath);
-
-    let photo = store.createPhoto({
+    const photo = await ingestUploadedFile({
+      filePath,
       filename: file.filename,
       originalName: file.originalname,
       mimeType: file.mimetype,
-      lat: meta.lat,
-      lng: meta.lng,
-      takenAt: meta.takenAt,
-      width: meta.width,
-      height: meta.height,
+      sizeBytes: file.size,
+      clientMeta,
       uploadedBy: req.authUser ?? null,
     });
-
-    const hasGps = meta.lat != null && meta.lng != null;
-    if (hasGps) {
-      const matched = matchPhotoToSite(photo.id);
-      if (matched) photo = matched;
-    }
-
-    const autoMatched = Boolean(photo.siteId);
-    results.push({
-      ...photo,
-      autoMatched,
-      hasGps,
-      sizeBytes: file.size,
-      ingestMs: Date.now() - ingestStart,
-      matchStatus: autoMatched ? "routed" : hasGps ? "queued" : "no_fix",
-    });
+    results.push(photo);
   }
 
   res.status(201).json({ photos: results });
@@ -368,6 +474,7 @@ app.delete("/api/photos/:id", (req, res) => {
 });
 
 fs.mkdirSync(uploadDir, { recursive: true });
+cleanupStaleUploadSessions();
 
 if (isProduction && fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));

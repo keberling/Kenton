@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Camera, Loader2, Upload, Zap } from "lucide-react";
+import { Camera, Loader2, RefreshCw, Upload, Zap } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
@@ -24,7 +24,9 @@ export function UploadPage() {
     error,
     startIngest,
     clearError,
+    retryFailed,
   } = useIngest();
+  const failedCount = queue.filter((item) => item.phase === "error").length;
 
   const handleFiles = (files: FileList | File[]) => {
     clearError();
@@ -59,6 +61,7 @@ export function UploadPage() {
           <div className="flex flex-wrap gap-1.5">
             <TechStatusChip code="PIPE" label={uploading ? "ACTIVE" : "IDLE"} tone={uploading ? "cyan" : "muted"} />
             <TechStatusChip code="BG" label="persistent" tone="emerald" />
+            <TechStatusChip code="RES" label="chunk·retry·idb" tone="violet" />
             <TechStatusChip code="MAX" label="30MB/asset" tone="muted" />
             <TechStatusChip code="FMT" label="JPEG·PNG·HEIC" tone="muted" />
           </div>
@@ -130,7 +133,8 @@ export function UploadPage() {
         </h3>
         <p className="relative mx-auto mt-3 max-w-lg text-sm leading-relaxed text-white/45">
           Rack shots, cable runs, display mounts, rack elevations — sequential uplink with live segment
-          telemetry per asset. Navigate away freely; uplink continues in the background.
+          telemetry per asset. Images compress before uplink, large files ship in 256KB chunks with auto-retry,
+          and pending uploads persist offline until they commit.
         </p>
 
         <div className="relative mx-auto mt-5 max-w-md">
@@ -172,6 +176,22 @@ export function UploadPage() {
       {error && (
         <div className="rounded-xl bg-rose-500/10 px-4 py-3 font-mono text-sm text-rose-300 ring-1 ring-rose-400/25">
           {error}
+        </div>
+      )}
+
+      {failedCount > 0 && (
+        <div className="panel window rounded-2xl px-5 py-4">
+          <p className="hud-label text-rose-300/80">Uplink interrupted</p>
+          <p className="mt-2 text-sm t-subtle">
+            {failedCount} asset{failedCount === 1 ? "" : "s"} saved locally and ready to resume when your connection stabilizes.
+          </p>
+          <button
+            onClick={() => retryFailed()}
+            className="btn-primary mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm"
+          >
+            <RefreshCw size={14} />
+            Retry failed uploads
+          </button>
         </div>
       )}
 

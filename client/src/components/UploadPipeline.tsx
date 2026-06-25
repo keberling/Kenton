@@ -11,6 +11,7 @@ import {
   Scan,
 } from "lucide-react";
 import type { Photo } from "../types";
+import type { ClientPhotoMeta } from "../lib/imagePrep";
 import {
   formatBytes,
   formatCoords,
@@ -24,17 +25,32 @@ import {
 } from "../lib/format";
 import { TechMeta, TechMetaRow, TechStatusChip } from "./TechMeta";
 
-export type UploadPhase = "queued" | "uplink" | "processing" | "done" | "error";
+export type UploadPhase =
+  | "queued"
+  | "compressing"
+  | "uplink"
+  | "retrying"
+  | "processing"
+  | "done"
+  | "error";
 
 export interface UploadQueueItem {
   id: string;
   file: File;
+  preparedFile?: File;
   previewUrl: string;
   phase: UploadPhase;
   progress: number;
   bytesLoaded: number;
   startedAt: number | null;
   completedAt: number | null;
+  originalSize?: number;
+  uploadSize?: number;
+  compressed?: boolean;
+  clientMeta?: ClientPhotoMeta;
+  retryCount?: number;
+  sessionId?: string | null;
+  chunksCompleted?: number;
   result?: Photo;
   error?: string;
 }
@@ -49,7 +65,9 @@ interface UploadPipelineProps {
 function phaseLabel(phase: UploadPhase): string {
   switch (phase) {
     case "queued": return "QUE";
+    case "compressing": return "CMP";
     case "uplink": return "UPL";
+    case "retrying": return "RTY";
     case "processing": return "PRC";
     case "done": return "ACK";
     case "error": return "ERR";
@@ -59,7 +77,9 @@ function phaseLabel(phase: UploadPhase): string {
 function phaseTone(phase: UploadPhase): "muted" | "cyan" | "amber" | "emerald" | "rose" {
   switch (phase) {
     case "queued": return "muted";
+    case "compressing": return "amber";
     case "uplink": return "cyan";
+    case "retrying": return "amber";
     case "processing": return "amber";
     case "done": return "emerald";
     case "error": return "rose";
@@ -78,26 +98,53 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    if (!active && !items.some((item) => item.phase === "processing")) return;
+    if (
+      !active &&
+      !items.some((item) =>
+        item.phase === "processing" ||
+        item.phase === "compressing" ||
+        item.phase === "retrying" ||
+        item.phase === "uplink",
+      )
+    ) {
+      return;
+    }
     const id = window.setInterval(() => setTick((t) => t + 1), 200);
     return () => window.clearInterval(id);
   }, [active, items]);
 
-  const totalBytes = items.reduce((sum, item) => sum + item.file.size, 0);
+  const itemBytes = (item: UploadQueueItem) => item.uploadSize ?? item.file.size;
+  const totalBytes = items.reduce((sum, item) => sum + itemBytes(item), 0);
   const uploadedBytes = items.reduce((sum, item) => {
-    if (item.phase === "done") return sum + item.file.size;
-    if (item.phase === "uplink" || item.phase === "processing") return sum + item.bytesLoaded;
+    if (item.phase === "done") return sum + itemBytes(item);
+    if (
+      item.phase === "uplink" ||
+      item.phase === "processing" ||
+      item.phase === "retrying"
+    ) {
+      return sum + item.bytesLoaded;
+    }
     return sum;
   }, 0);
   const overallPercent = totalBytes > 0 ? Math.round((uploadedBytes / totalBytes) * 100) : 0;
   const doneCount = items.filter((i) => i.phase === "done").length;
-  const errorCount = items.filter((i) => i.phase === "error").length;
   const routedCount = items.filter((i) => i.result?.matchStatus === "routed").length;
   const gpsCount = items.filter((i) => i.result?.hasGps).length;
   const elapsed = Date.now() - sessionStartedAt;
   const throughput = formatThroughput(uploadedBytes, Math.max(elapsed, 1));
 
-  const activeItem = items.find((i) => i.phase === "uplink" || i.phase === "processing");
+  const activeItem = items.find(
+    (i) =>
+      i.phase === "compressing" ||
+      i.phase === "uplink" ||
+      i.phase === "retrying" ||
+      i.phase === "processing",
+  );
+  const errorCount = items.filter((i) => i.phase === "error").length;
+  const savedBytes = items.reduce((sum, item) => {
+    if (!item.compressed || !item.originalSize || !item.uploadSize) return sum;
+    return sum + Math.max(0, item.originalSize - item.uploadSize);
+  }, 0);
 
   return (
     <motion.section
@@ -118,7 +165,10 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
           </div>
           <div className="flex flex-wrap gap-1.5">
             <TechStatusChip code="BATCH" label={batchId} tone="cyan" />
-            {active && <TechStatusChip code="CH" label="multipart" tone="muted" />}
+            {active && <TechStatusChip code="RES" label="chunk+retry" tone="muted" />}
+            {savedBytes > 0 && (
+              <TechStatusChip code="CMP" label={`-${formatBytes(savedBytes)}`} tone="emerald" />
+            )}
             {errorCount > 0 && <TechStatusChip code="ERR" label={`${errorCount}`} tone="rose" />}
           </div>
         </div>
@@ -138,6 +188,7 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
             accent="violet"
           />
           <TechMeta label="Queue depth" value={`${items.length - doneCount} pending`} accent="amber" />
+          <TechMeta label="Persist" value="indexeddb" accent="muted" />
         </TechMetaRow>
       </div>
 
@@ -161,7 +212,13 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
         {activeItem && (
           <p className="mt-2 font-mono text-[10px] text-cyan-400/70">
             → {activeItem.file.name}
-            {activeItem.phase === "processing" ? ` · ${processingStep(activeItem)}` : ` · ${activeItem.progress}%`}
+            {activeItem.phase === "compressing"
+              ? " · optimizing for uplink"
+              : activeItem.phase === "retrying"
+                ? ` · retry ${activeItem.retryCount ?? 0}/6`
+                : activeItem.phase === "processing"
+                  ? ` · ${processingStep(activeItem)}`
+                  : ` · ${activeItem.progress}%`}
           </p>
         )}
       </div>
@@ -202,7 +259,11 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-white">{item.file.name}</p>
                         <p className="mt-0.5 font-mono text-[10px] text-white/35">
-                          {formatMimeShort(item.file.type)} · {formatBytes(item.file.size)}
+                          {formatMimeShort(item.file.type)} ·{" "}
+                          {item.compressed && item.originalSize
+                            ? `${formatBytes(item.uploadSize ?? item.file.size)} ← ${formatBytes(item.originalSize)}`
+                            : formatBytes(item.file.size)}
+                          {item.retryCount ? ` · r${item.retryCount}` : ""}
                           {photo?.ingestMs != null ? ` · srv ${photo.ingestMs}ms` : ""}
                         </p>
                       </div>
@@ -213,9 +274,13 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
                             ? processingStep(item)
                             : item.phase === "done"
                               ? "COMMITTED"
-                              : item.phase === "error"
-                                ? "FAILED"
-                                : item.phase.toUpperCase()
+                              : item.phase === "compressing"
+                              ? "OPTIMIZING"
+                              : item.phase === "retrying"
+                                ? "RETRYING"
+                                : item.phase === "error"
+                                  ? "FAILED"
+                                  : item.phase.toUpperCase()
                         }
                         tone={phaseTone(item.phase)}
                       />
@@ -297,7 +362,7 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
                     {item.phase === "error" && (
                       <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-[10px] text-rose-400">
                         <AlertCircle size={12} />
-                        {item.error ?? "Upload failed"}
+                        {item.error ?? "Upload failed"} — queued in offline vault until retry succeeds
                       </p>
                     )}
                   </div>
