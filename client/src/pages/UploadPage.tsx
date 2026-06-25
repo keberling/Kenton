@@ -112,7 +112,6 @@ export function UploadPage() {
           type="file"
           accept="image/*"
           multiple
-          capture="environment"
           className="hidden"
           onChange={(e) => {
             if (e.target.files?.length) handleFiles(e.target.files);
@@ -148,11 +147,14 @@ export function UploadPage() {
 
         <div className="relative mt-8 flex flex-wrap justify-center gap-3">
           <button
-            onClick={() => inputRef.current?.click()}
+            onClick={() => {
+              inputRef.current?.removeAttribute("capture");
+              inputRef.current?.click();
+            }}
             className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
           >
             <Upload size={16} />
-            {uploading ? "Add to queue" : "Select files"}
+            {uploading ? "Add to queue" : "Select photos"}
           </button>
           <button
             onClick={() => {
