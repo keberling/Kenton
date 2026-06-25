@@ -5,7 +5,9 @@ import { Link, useParams } from "react-router-dom";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
+import { TechMeta, TechMetaRow } from "../components/TechMeta";
 import { deletePhoto, getPhotos, getSite, regeocodeSite } from "../lib/api";
+import { formatCoords, shortId } from "../lib/format";
 import type { Photo, Site } from "../types";
 
 export function SiteDetailPage() {
@@ -100,6 +102,18 @@ export function SiteDetailPage() {
                 {site.lat != null && (
                   <span className="status-dot status-dot-live" title="Geocoded" />
                 )}
+              </div>
+              <div className="mt-4 max-w-xl">
+                <TechMetaRow>
+                  <TechMeta label="Node ID" value={shortId(site.id, 10)} accent="muted" />
+                  <TechMeta
+                    label="Fix"
+                    value={formatCoords(site.lat, site.lng) ?? "PENDING"}
+                    accent={site.lat != null ? "cyan" : "amber"}
+                  />
+                  <TechMeta label="Geocoder" value={site.geocodeSource ?? "—"} accent="muted" />
+                  <TechMeta label="Radius" value={`${(site.radiusMeters / 1609.344).toFixed(1)} mi`} accent="muted" />
+                </TechMetaRow>
               </div>
             </div>
             <button

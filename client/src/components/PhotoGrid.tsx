@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Crosshair, Expand, MapPin, Satellite, Trash2 } from "lucide-react";
 import type { Photo } from "../types";
-import { formatCoords, formatDate } from "../lib/format";
+import { formatCoords, formatDate, formatMimeShort, formatResolution, shortId } from "../lib/format";
 
 interface PhotoGridProps {
   photos: Photo[];
@@ -132,7 +132,14 @@ export function PhotoGrid({
             {/* Bottom metadata HUD */}
             <div className="absolute inset-x-0 bottom-0 p-3">
               <p className="truncate font-medium text-sm text-white">{photo.originalName}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-white/50">
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[9px] text-white/45">
+                <span>ID::{shortId(photo.id, 6)}</span>
+                <span>{formatMimeShort(photo.mimeType)}</span>
+                {formatResolution(photo.width, photo.height) && (
+                  <span>{formatResolution(photo.width, photo.height)}</span>
+                )}
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-white/50">
                 <span>{formatDate(photo.takenAt ?? photo.uploadedAt)}</span>
                 {formatCoords(photo.lat, photo.lng) && (
                   <span className="text-cyan-400/70">{formatCoords(photo.lat, photo.lng)}</span>

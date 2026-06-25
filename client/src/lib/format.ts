@@ -33,6 +33,38 @@ export function mapsUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
+}
+
+export function formatThroughput(bytes: number, ms: number): string {
+  if (ms <= 0) return "—";
+  const perSec = (bytes / ms) * 1000;
+  return `${formatBytes(perSec)}/s`;
+}
+
+export function shortId(id: string, len = 8): string {
+  return id.replace(/-/g, "").slice(0, len).toUpperCase();
+}
+
+export function formatResolution(width: number | null, height: number | null): string | null {
+  if (!width || !height) return null;
+  const mp = ((width * height) / 1_000_000).toFixed(1);
+  return `${width}×${height} · ${mp}MP`;
+}
+
+export function formatMimeShort(mime: string): string {
+  return mime.replace("image/", "").toUpperCase() || "BIN";
+}
+
 export function geocodeSourceLabel(source: string | null | undefined): string {
   if (!source) return "Unknown";
   const labels: Record<string, string> = {

@@ -34,6 +34,9 @@ export function StatCards({ stats }: StatCardsProps) {
             <p className={`font-display mt-3 text-3xl font-bold tabular-nums ${item.accent}`}>
               {value}
             </p>
+            <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-white/25">
+              SYS::{item.key.replace(/([A-Z])/g, "_$1").toUpperCase()}
+            </p>
           </motion.div>
         );
       })}

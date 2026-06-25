@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { createSite, deleteSite, getSites, regeocodeSite } from "../lib/api";
-import { formatRadiusMeters } from "../lib/format";
+import { formatRadiusMeters, shortId } from "../lib/format";
 import type { Site } from "../types";
 
 export function SitesPage() {
@@ -164,6 +164,9 @@ export function SitesPage() {
                           {site.name}
                         </h3>
                         <p className="mt-1 text-sm text-white/45">{site.address}</p>
+                        <p className="mt-1 font-mono text-[9px] text-white/25">
+                          NODE::{shortId(site.id, 8)} · RAD::{site.radiusMeters}m
+                        </p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2">
                         <span className="glass-badge inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-xs text-violet-300">

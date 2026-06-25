@@ -41,6 +41,9 @@ export interface Photo {
   url: string;
   autoMatched?: boolean;
   hasGps?: boolean;
+  sizeBytes?: number;
+  ingestMs?: number;
+  matchStatus?: "routed" | "queued" | "no_fix";
 }
 
 export interface Stats {

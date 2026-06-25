@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
+import { TechStatusChip } from "../components/TechMeta";
 import { deletePhoto, getPhotos, rematchAllPhotos } from "../lib/api";
 import type { Photo } from "../types";
 
@@ -32,20 +33,24 @@ export function PhotosPage() {
         title="Photo library"
         description="Every field capture across all client deployments. Masonry layout · tap to enter cinematic viewer."
         action={
-          <div className="neu-inset flex gap-1 rounded-xl p-1">
-            {(["all", "unassigned"] as const).map((value) => (
-              <button
-                key={value}
-                onClick={() => setFilter(value)}
-                className={`rounded-lg px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider transition ${
-                  filter === value
-                    ? "neu-raised-sm text-cyan-300/95"
-                    : "text-white/38 hover-shake hover:text-white/68"
-                }`}
-              >
-                {value === "all" ? "All assets" : "Queued"}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <TechStatusChip code="VIEW" label="masonry" tone="muted" />
+            <TechStatusChip code="CNT" label={`${photos.length} loaded`} tone="cyan" />
+            <div className="neu-inset flex gap-1 rounded-xl p-1">
+              {(["all", "unassigned"] as const).map((value) => (
+                <button
+                  key={value}
+                  onClick={() => setFilter(value)}
+                  className={`rounded-lg px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider transition ${
+                    filter === value
+                      ? "neu-raised-sm text-cyan-300/95"
+                      : "text-white/38 hover-shake hover:text-white/68"
+                  }`}
+                >
+                  {value === "all" ? "All assets" : "Queued"}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />

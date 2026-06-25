@@ -192,6 +192,7 @@ app.post("/api/photos/upload", upload.array("photos", 20), async (req, res) => {
   const results = [];
 
   for (const file of files) {
+    const ingestStart = Date.now();
     const filePath = path.join(uploadDir, file.filename);
     const meta = await extractPhotoMeta(filePath);
 
@@ -206,15 +207,20 @@ app.post("/api/photos/upload", upload.array("photos", 20), async (req, res) => {
       height: meta.height,
     });
 
-    if (meta.lat != null && meta.lng != null) {
+    const hasGps = meta.lat != null && meta.lng != null;
+    if (hasGps) {
       const matched = matchPhotoToSite(photo.id);
       if (matched) photo = matched;
     }
 
+    const autoMatched = Boolean(photo.siteId);
     results.push({
       ...photo,
-      autoMatched: Boolean(photo.siteId),
-      hasGps: meta.lat != null && meta.lng != null,
+      autoMatched,
+      hasGps,
+      sizeBytes: file.size,
+      ingestMs: Date.now() - ingestStart,
+      matchStatus: autoMatched ? "routed" : hasGps ? "queued" : "no_fix",
     });
   }
 
