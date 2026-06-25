@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Images, MapPin, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Images, MapPinned, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PageHeader } from "../components/PageHeader";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
 import { createSite, deleteSite, getSites, regeocodeSite } from "../lib/api";
 import { formatRadiusMeters } from "../lib/format";
@@ -18,7 +19,7 @@ export function SitesPage() {
   const [expandedSiteId, setExpandedSiteId] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    getSites().then(setSites).catch(() => setError("Could not load sites"));
+    getSites().then(setSites).catch(() => setError("Could not load deployments"));
   }, []);
 
   useEffect(() => {
@@ -39,19 +40,19 @@ export function SitesPage() {
       setAddress("");
       setMessage(
         result.geocoded
-          ? `Site created via ${result.geocodeSource ?? "geocoder"}. ${result.matchedPhotos} nearby photo${result.matchedPhotos === 1 ? "" : "s"} auto-tagged.`
-          : `Site created, but geocoding failed: ${result.geocodeError ?? "unknown error"}`,
+          ? `Node online via ${result.geocodeSource ?? "geocoder"}. ${result.matchedPhotos} asset${result.matchedPhotos === 1 ? "" : "s"} routed.`
+          : `Node created — geocode failed: ${result.geocodeError ?? "unknown"}`,
       );
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create site");
+      setError(err instanceof Error ? err.message : "Could not create deployment");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this job site? Photos will return to the general pool.")) return;
+    if (!window.confirm("Delete this deployment? Photos return to the queue.")) return;
     await deleteSite(id);
     load();
   };
@@ -59,159 +60,168 @@ export function SitesPage() {
   const defaultRadius = sites[0]?.radiusMeters;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-      <section className="glass h-fit rounded-3xl p-5">
-        <h2 className="font-display text-xl font-semibold text-stone-900">Add job site</h2>
-        <p className="mt-2 text-sm text-stone-500">
-          Enter the site address. Photos with GPS within{" "}
-          {defaultRadius ? formatRadiusMeters(defaultRadius) : "~10 miles"} are tagged automatically.
-        </p>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Deployment registry"
+        title="Client sites"
+        description="AV & IT install locations across your clients. GPS-tagged field photos auto-route to deployments within range."
+      />
 
-        <form onSubmit={handleCreate} className="mt-5 space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Site name</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Riverside HVAC install"
-              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-400"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Address</span>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="123 Main St, Portland, OR"
-              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-400"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
-          >
-            <Plus size={16} />
-            {saving ? "Creating…" : "Create site"}
-          </button>
-        </form>
+      <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
+        <section className="panel h-fit rounded-2xl p-5">
+          <p className="hud-label text-cyan-400/70">New deployment</p>
+          <h3 className="font-display mt-1 text-xl font-bold text-white">Register site</h3>
+          <p className="mt-2 text-sm text-white/40">
+            Assets with GPS within{" "}
+            {defaultRadius ? formatRadiusMeters(defaultRadius) : "~10 mi"} auto-route here.
+          </p>
 
-        {message && <p className="mt-4 text-sm text-emerald-700">{message}</p>}
-        {error && <p className="mt-4 text-sm text-rose-700">{error}</p>}
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-semibold text-stone-900">Job sites</h2>
-        {sites.length === 0 ? (
-          <div className="glass rounded-3xl px-6 py-16 text-center text-stone-500">
-            No job sites yet. Add one to start auto-tagging nearby photos.
-          </div>
-        ) : (
-          sites.map((site, index) => (
-            <motion.div
-              key={site.id}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.04 }}
-              className="glass overflow-hidden rounded-2xl"
+          <form onSubmit={handleCreate} className="mt-5 space-y-3">
+            <label className="block">
+              <span className="hud-label mb-1.5 block">Client / project</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Acme Corp — Boardroom AV"
+                className="input-field w-full rounded-xl px-4 py-3 text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="hud-label mb-1.5 block">Address</span>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="123 Main St, Portland, OR"
+                className="input-field w-full rounded-xl px-4 py-3 text-sm"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm disabled:opacity-50"
             >
-              <button
-                type="button"
-                onClick={() => navigate(`/sites/${site.id}`)}
-                className="w-full px-4 py-4 text-left transition hover:bg-orange-50/40"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-                    <MapPin size={20} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="font-display text-lg font-semibold text-stone-900">{site.name}</h3>
-                        <p className="text-sm text-stone-500">{site.address}</p>
-                        <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-orange-700">
-                          <Images size={15} />
-                          View gallery · {site.photoCount ?? 0} photo{(site.photoCount ?? 0) === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                    </div>
+              <Plus size={16} />
+              {saving ? "Provisioning…" : "Create deployment"}
+            </button>
+          </form>
 
-                    {site.previewPhotos && site.previewPhotos.length > 0 && (
-                      <div className="mt-3 grid grid-cols-4 gap-2">
-                        {site.previewPhotos.map((url) => (
+          {message && <p className="mt-4 font-mono text-xs text-emerald-400">{message}</p>}
+          {error && <p className="mt-4 font-mono text-xs text-rose-400">{error}</p>}
+        </section>
+
+        <section className="space-y-4">
+          {sites.length === 0 ? (
+            <div className="panel rounded-2xl px-6 py-24 text-center">
+              <MapPinned size={32} className="mx-auto text-white/20" />
+              <p className="mt-4 text-white/40">No deployments yet. Register a client site to start routing assets.</p>
+            </div>
+          ) : (
+            sites.map((site, index) => (
+              <motion.div
+                key={site.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="panel panel-interactive overflow-hidden rounded-2xl"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate(`/sites/${site.id}`)}
+                  className="group relative w-full text-left"
+                >
+                  {/* Preview mosaic background */}
+                  {site.previewPhotos && site.previewPhotos.length > 0 && (
+                    <div className="relative h-36 overflow-hidden sm:h-44">
+                      <div className="absolute inset-0 grid grid-cols-4 grid-rows-2 gap-0.5">
+                        {site.previewPhotos.slice(0, 5).map((url, i) => (
                           <img
                             key={url}
                             src={url}
                             alt=""
-                            className="aspect-square rounded-xl object-cover"
+                            className={`h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] ${
+                              i === 0 ? "col-span-2 row-span-2" : ""
+                            }`}
                             loading="lazy"
                           />
                         ))}
                       </div>
-                    )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0e1018] via-[#0e1018]/50 to-transparent" />
+                    </div>
+                  )}
+
+                  <div className={`relative p-5 ${!site.previewPhotos?.length ? "pt-5" : ""}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`status-dot ${
+                              site.lat != null ? "status-dot-live" : "status-dot-warn"
+                            }`}
+                          />
+                          <p className="hud-label">{site.lat != null ? "Online" : "No fix"}</p>
+                        </div>
+                        <h3 className="font-display mt-1 text-xl font-bold text-white transition group-hover:text-cyan-200 sm:text-2xl">
+                          {site.name}
+                        </h3>
+                        <p className="mt-1 text-sm text-white/45">{site.address}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/15 px-3 py-1.5 font-mono text-xs text-violet-300 ring-1 ring-violet-400/25">
+                          <Images size={13} />
+                          {site.photoCount ?? 0}
+                        </span>
+                        <span className="inline-flex items-center gap-1 font-mono text-xs text-cyan-400/80 transition group-hover:text-cyan-300">
+                          Open gallery
+                          <ChevronRight size={14} className="transition group-hover:translate-x-0.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedSiteId((current) => (current === site.id ? null : site.id))}
+                    className="font-mono text-[10px] uppercase tracking-wider text-white/35 transition hover:text-white/60"
+                  >
+                    {expandedSiteId === site.id ? "− Telemetry" : "+ Telemetry"}
+                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const result = await regeocodeSite(site.id);
+                          setMessage(`Fix updated. ${result.matchedPhotos} assets routed.`);
+                          load();
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "Geocode failed");
+                        }
+                      }}
+                      className="btn-ghost rounded-lg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider"
+                    >
+                      {site.lat == null ? "Retry fix" : "Refresh"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(site.id)}
+                      className="rounded-lg p-2 text-white/30 transition hover:bg-rose-500/10 hover:text-rose-400"
+                      aria-label="Delete site"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
-              </button>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200/70 px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => setExpandedSiteId((current) => (current === site.id ? null : site.id))}
-                  className="text-xs font-medium text-stone-500 transition hover:text-stone-800"
-                >
-                  {expandedSiteId === site.id ? "Hide geocoding details" : "Geocoding details"}
-                </button>
-                <div className="flex gap-1">
-                  {site.lat == null ? (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const result = await regeocodeSite(site.id);
-                          setMessage(`Geocoded via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
-                          load();
-                        } catch (err) {
-                          setError(err instanceof Error ? err.message : "Geocode failed");
-                        }
-                      }}
-                      className="rounded-xl px-3 py-2 text-xs font-medium text-orange-700 transition hover:bg-orange-50"
-                    >
-                      Retry geocode
-                    </button>
-                  ) : (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const result = await regeocodeSite(site.id);
-                          setMessage(`Refreshed geocode via ${result.geocodeSource}. ${result.matchedPhotos} photos matched.`);
-                          load();
-                        } catch (err) {
-                          setError(err instanceof Error ? err.message : "Geocode failed");
-                        }
-                      }}
-                      className="rounded-xl px-3 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-100"
-                    >
-                      Refresh geocode
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(site.id)}
-                    className="rounded-xl p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
-                    aria-label="Delete site"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {expandedSiteId === site.id && (
-                <div className="border-t border-stone-200/70 px-4 pb-4">
-                  <SiteGeocodeInfo site={site} />
-                </div>
-              )}
-            </motion.div>
-          ))
-        )}
-      </section>
+                {expandedSiteId === site.id && (
+                  <div className="border-t border-white/5 px-5 pb-5">
+                    <SiteGeocodeInfo site={site} />
+                  </div>
+                )}
+              </motion.div>
+            ))
+          )}
+        </section>
+      </div>
     </div>
   );
 }

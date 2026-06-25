@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Trash2 } from "lucide-react";
+import { Crosshair, Expand, MapPin, Satellite, Trash2 } from "lucide-react";
 import type { Photo } from "../types";
 import { formatCoords, formatDate } from "../lib/format";
 
@@ -8,7 +8,22 @@ interface PhotoGridProps {
   onDelete?: (id: string) => void;
   onPhotoClick?: (photo: Photo, index: number) => void;
   showSiteLabel?: boolean;
+  layout?: "masonry" | "bento";
   emptyMessage?: string;
+}
+
+function photoAspectStyle(photo: Photo): { aspectRatio: string } {
+  if (photo.width && photo.height && photo.width > 0) {
+    return { aspectRatio: `${photo.width} / ${photo.height}` };
+  }
+  return { aspectRatio: "4 / 5" };
+}
+
+function bentoClass(index: number, total: number): string {
+  if (index === 0 && total > 2) return "bento-featured";
+  if (index % 7 === 3) return "bento-tall";
+  if (index % 5 === 2) return "bento-wide";
+  return "";
 }
 
 export function PhotoGrid({
@@ -16,28 +31,37 @@ export function PhotoGrid({
   onDelete,
   onPhotoClick,
   showSiteLabel = true,
-  emptyMessage = "No photos yet",
+  layout = "masonry",
+  emptyMessage = "No assets in archive",
 }: PhotoGridProps) {
   if (photos.length === 0) {
     return (
-      <div className="glass rounded-3xl px-6 py-16 text-center text-stone-500">
-        {emptyMessage}
+      <div className="panel flex flex-col items-center justify-center rounded-2xl px-6 py-24 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <Crosshair size={28} className="text-white/25" />
+        </div>
+        <p className="text-white/40">{emptyMessage}</p>
       </div>
     );
   }
 
+  const containerClass = layout === "bento" ? "bento-grid" : "masonry";
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className={containerClass}>
       {photos.map((photo, index) => (
         <motion.article
           key={photo.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.03 }}
-          className="glass group overflow-hidden rounded-2xl"
+          initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.45 }}
+          className={`panel panel-interactive group relative overflow-hidden rounded-2xl ${
+            layout === "masonry" ? "masonry-item" : bentoClass(index, photos.length)
+          }`}
         >
           <div
-            className={`relative aspect-square overflow-hidden bg-stone-100 ${onPhotoClick ? "cursor-zoom-in" : ""}`}
+            className={`relative w-full overflow-hidden bg-black/50 ${onPhotoClick ? "cursor-zoom-in" : ""}`}
+            style={photoAspectStyle(photo)}
             onClick={() => onPhotoClick?.(photo, index)}
             onKeyDown={(event) => {
               if (onPhotoClick && (event.key === "Enter" || event.key === " ")) {
@@ -51,38 +75,70 @@ export function PhotoGrid({
             <img
               src={photo.url}
               alt={photo.originalName}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.06]"
               loading="lazy"
             />
-            {onDelete && (
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete(photo.id);
-                }}
-                className="absolute right-2 top-2 rounded-xl bg-black/55 p-2 text-white opacity-0 transition group-hover:opacity-100"
-                aria-label="Delete photo"
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
-          </div>
-          <div className="space-y-1 p-3 text-xs">
-            <p className="truncate font-medium text-stone-800">{photo.originalName}</p>
-            <p className="text-stone-500">{formatDate(photo.takenAt ?? photo.uploadedAt)}</p>
-            {showSiteLabel && (
-              photo.siteName ? (
-                <p className="inline-flex items-center gap-1 text-orange-700">
-                  <MapPin size={12} />
-                  {photo.siteName}
-                </p>
-              ) : (
-                <p className="text-stone-400">Unassigned</p>
-              )
-            )}
-            {formatCoords(photo.lat, photo.lng) && (
-              <p className="truncate text-stone-400">{formatCoords(photo.lat, photo.lng)}</p>
-            )}
+
+            {/* Gradient overlay */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 transition duration-300 group-hover:opacity-100" />
+
+            {/* HUD corner bracket */}
+            <div className="pointer-events-none absolute left-3 top-3 h-5 w-5 border-l border-t border-cyan-400/50 opacity-0 transition group-hover:opacity-100" />
+            <div className="pointer-events-none absolute bottom-3 right-3 h-5 w-5 border-b border-r border-cyan-400/50 opacity-0 transition group-hover:opacity-100" />
+
+            {/* Top badges */}
+            <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+              {photo.lat != null && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[10px] text-emerald-300/90 ring-1 ring-emerald-400/20 backdrop-blur-sm">
+                  <Satellite size={10} />
+                  GPS
+                </span>
+              )}
+              {showSiteLabel && (
+                photo.siteName ? (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-500/25 px-2 py-0.5 font-mono text-[10px] text-violet-200 ring-1 ring-violet-400/25 backdrop-blur-sm">
+                    <MapPin size={10} />
+                    {photo.siteName}
+                  </span>
+                ) : (
+                  <span className="rounded-md bg-amber-500/20 px-2 py-0.5 font-mono text-[10px] text-amber-200/90 ring-1 ring-amber-400/20 backdrop-blur-sm">
+                    UNASSIGNED
+                  </span>
+                )
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="absolute right-3 top-3 flex gap-1.5 opacity-0 transition group-hover:opacity-100">
+              {onPhotoClick && (
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white/80 ring-1 ring-white/15 backdrop-blur-sm">
+                  <Expand size={14} />
+                </span>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete(photo.id);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/20 text-rose-300 ring-1 ring-rose-400/30 backdrop-blur-sm transition hover:bg-rose-500/40"
+                  aria-label="Delete photo"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Bottom metadata HUD */}
+            <div className="absolute inset-x-0 bottom-0 p-3">
+              <p className="truncate font-medium text-sm text-white">{photo.originalName}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-white/50">
+                <span>{formatDate(photo.takenAt ?? photo.uploadedAt)}</span>
+                {formatCoords(photo.lat, photo.lng) && (
+                  <span className="text-cyan-400/70">{formatCoords(photo.lat, photo.lng)}</span>
+                )}
+              </div>
+            </div>
           </div>
         </motion.article>
       ))}

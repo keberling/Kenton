@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Satellite, X } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import type { Photo } from "../types";
 import { formatCoords, formatDate } from "../lib/format";
@@ -41,67 +41,154 @@ export function PhotoLightbox({ photos, index, onClose, onChangeIndex }: PhotoLi
 
   if (!photo) return null;
 
+  const progress = ((index + 1) / photos.length) * 100;
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex flex-col bg-black/95"
+        className="fixed inset-0 z-50 flex flex-col bg-[#05060a]/98 backdrop-blur-2xl"
         role="dialog"
         aria-modal="true"
-        aria-label="Photo gallery"
+        aria-label="Asset viewer"
       >
-        <div className="flex items-center justify-between px-4 py-3 text-white">
-          <p className="text-sm text-white/80">
-            {index + 1} of {photos.length}
-          </p>
+        {/* Blurred backdrop */}
+        <div
+          className="pointer-events-none absolute inset-0 scale-110 opacity-30 blur-3xl"
+          style={{ backgroundImage: `url(${photo.url})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        />
+
+        {/* Progress bar */}
+        <div className="relative h-0.5 w-full bg-white/5">
+          <motion.div
+            className="h-full bg-gradient-to-r from-cyan-400 to-violet-400"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+
+        {/* Top bar */}
+        <div className="relative flex items-center justify-between px-4 py-3 sm:px-6">
+          <div>
+            <p className="hud-label text-cyan-400/70">Asset viewer</p>
+            <p className="font-mono text-sm text-white/60">
+              {String(index + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="rounded-xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
-            aria-label="Close gallery"
+            className="btn-ghost rounded-xl p-2.5"
+            aria-label="Close viewer"
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center px-14 sm:px-20">
-          {hasPrev && (
-            <button
-              onClick={goPrev}
-              className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 sm:left-4"
-              aria-label="Previous photo"
-            >
-              <ChevronLeft size={24} />
-            </button>
-          )}
+        {/* Main stage */}
+        <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+          <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 sm:px-20">
+            {hasPrev && (
+              <button
+                onClick={goPrev}
+                className="btn-ghost absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full p-3 sm:left-4"
+                aria-label="Previous"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
 
-          <motion.img
-            key={photo.id}
-            src={photo.url}
-            alt={photo.originalName}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="max-h-[calc(100dvh-10rem)] max-w-full object-contain"
-          />
+            <motion.img
+              key={photo.id}
+              src={photo.url}
+              alt={photo.originalName}
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="max-h-[calc(100dvh-14rem)] max-w-full rounded-lg object-contain shadow-2xl shadow-cyan-500/10 ring-1 ring-white/10 lg:max-h-[calc(100dvh-11rem)]"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.15}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -80) goNext();
+                else if (info.offset.x > 80) goPrev();
+              }}
+            />
 
-          {hasNext && (
-            <button
-              onClick={goNext}
-              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 sm:right-4"
-              aria-label="Next photo"
-            >
-              <ChevronRight size={24} />
-            </button>
-          )}
+            {hasNext && (
+              <button
+                onClick={goNext}
+                className="btn-ghost absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full p-3 sm:right-4"
+                aria-label="Next"
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
+          </div>
+
+          {/* Metadata panel */}
+          <aside className="panel m-4 mt-0 shrink-0 rounded-2xl p-4 lg:m-6 lg:mt-0 lg:w-72">
+            <p className="hud-label">Metadata</p>
+            <h3 className="mt-2 truncate font-display text-lg font-semibold text-white">{photo.originalName}</h3>
+            <dl className="mt-4 space-y-3 font-mono text-xs">
+              <div>
+                <dt className="text-white/35">CAPTURED</dt>
+                <dd className="mt-0.5 text-white/80">{formatDate(photo.takenAt ?? photo.uploadedAt)}</dd>
+              </div>
+              {photo.siteName && (
+                <div>
+                  <dt className="text-white/35">DEPLOYMENT</dt>
+                  <dd className="mt-0.5 inline-flex items-center gap-1.5 text-violet-300">
+                    <MapPin size={12} />
+                    {photo.siteName}
+                  </dd>
+                </div>
+              )}
+              {formatCoords(photo.lat, photo.lng) ? (
+                <div>
+                  <dt className="text-white/35">COORDINATES</dt>
+                  <dd className="mt-0.5 inline-flex items-center gap-1.5 text-cyan-300">
+                    <Satellite size={12} />
+                    {formatCoords(photo.lat, photo.lng)}
+                  </dd>
+                </div>
+              ) : (
+                <div>
+                  <dt className="text-white/35">COORDINATES</dt>
+                  <dd className="mt-0.5 text-amber-400/80">NO GPS EMBEDDED</dd>
+                </div>
+              )}
+              {photo.width && photo.height && (
+                <div>
+                  <dt className="text-white/35">RESOLUTION</dt>
+                  <dd className="mt-0.5 text-white/80">
+                    {photo.width} × {photo.height}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </aside>
         </div>
 
-        <div className="space-y-1 px-4 pb-6 pt-2 text-center text-sm text-white/80">
-          <p className="font-medium text-white">{photo.originalName}</p>
-          <p>{formatDate(photo.takenAt ?? photo.uploadedAt)}</p>
-          {photo.siteName && <p>{photo.siteName}</p>}
-          {formatCoords(photo.lat, photo.lng) && <p className="font-mono text-xs">{formatCoords(photo.lat, photo.lng)}</p>}
+        {/* Filmstrip */}
+        <div className="relative border-t border-white/5 bg-black/40 px-4 py-3 sm:px-6">
+          <div className="filmstrip flex gap-2 overflow-x-auto pb-1">
+            {photos.map((thumb, thumbIndex) => (
+              <button
+                key={thumb.id}
+                onClick={() => onChangeIndex(thumbIndex)}
+                className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg transition ${
+                  thumbIndex === index
+                    ? "ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#05060a]"
+                    : "opacity-50 hover:opacity-90"
+                }`}
+              >
+                <img src={thumb.url} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>

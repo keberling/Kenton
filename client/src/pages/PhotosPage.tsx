@@ -1,4 +1,7 @@
+import { motion } from "framer-motion";
+import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { deletePhoto, getPhotos, rematchAllPhotos } from "../lib/api";
@@ -23,41 +26,52 @@ export function PhotosPage() {
   }, [load]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl font-bold text-stone-900">Photo library</h2>
-          <p className="text-sm text-stone-500">All uploads, including the general pool waiting for a site match.</p>
-        </div>
-        <div className="flex gap-2 rounded-2xl bg-white/70 p-1 ring-1 ring-stone-200">
-          {(["all", "unassigned"] as const).map((value) => (
-            <button
-              key={value}
-              onClick={() => setFilter(value)}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                filter === value ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"
-              }`}
-            >
-              {value === "all" ? "All" : "Unassigned"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <PhotoGrid
-        photos={photos}
-        onPhotoClick={(_photo, index) => setLightboxIndex(index)}
-        onDelete={async (photoId) => {
-          await deletePhoto(photoId);
-          setLightboxIndex(null);
-          load();
-        }}
-        emptyMessage={
-          filter === "unassigned"
-            ? "No unassigned photos. Everything has been matched to a job site."
-            : "No photos uploaded yet. Head to Upload to add field photos."
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Asset archive"
+        title="Photo library"
+        description="Every field capture across all client deployments. Masonry layout · tap to enter cinematic viewer."
+        action={
+          <div className="flex gap-1 rounded-xl bg-black/40 p-1 ring-1 ring-white/10">
+            {(["all", "unassigned"] as const).map((value) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`rounded-lg px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider transition ${
+                  filter === value
+                    ? "bg-cyan-400/15 text-cyan-300 ring-1 ring-cyan-400/30"
+                    : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                {value === "all" ? "All assets" : "Queued"}
+              </button>
+            ))}
+          </div>
         }
       />
+
+      <motion.div
+        key={filter}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25 }}
+      >
+        <PhotoGrid
+          photos={photos}
+          layout="masonry"
+          onPhotoClick={(_photo, index) => setLightboxIndex(index)}
+          onDelete={async (photoId) => {
+            await deletePhoto(photoId);
+            setLightboxIndex(null);
+            load();
+          }}
+          emptyMessage={
+            filter === "unassigned"
+              ? "Queue empty — all assets routed to deployments."
+              : "No assets yet. Head to Ingest to capture field photos."
+          }
+        />
+      </motion.div>
 
       {lightboxIndex != null && (
         <PhotoLightbox
@@ -69,19 +83,17 @@ export function PhotosPage() {
       )}
 
       {filter === "unassigned" && photos.length > 0 && (
-        <p className="text-sm text-stone-500">
-          Unassigned photos with GPS are re-matched automatically when you open this page. Compare
-          coordinates on the Sites tab if anything still looks wrong.
-          {" "}
+        <p className="font-mono text-xs text-white/35">
+          Auto-matching runs on load.{" "}
           <button
-            className="font-medium text-orange-700 underline disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-cyan-400 transition hover:text-cyan-300 disabled:opacity-50"
             disabled={rematching}
             onClick={async () => {
               setRematching(true);
               try {
                 const result = await rematchAllPhotos();
                 if (result.matched > 0) {
-                  window.alert(`${result.matched} photo${result.matched === 1 ? "" : "s"} matched to job sites.`);
+                  window.alert(`${result.matched} asset${result.matched === 1 ? "" : "s"} routed.`);
                 }
                 load();
               } finally {
@@ -89,7 +101,8 @@ export function PhotosPage() {
               }
             }}
           >
-            {rematching ? "Matching…" : "Retry matching now"}
+            <RefreshCw size={12} className={rematching ? "animate-spin" : ""} />
+            {rematching ? "Scanning…" : "Force rescan"}
           </button>
         </p>
       )}
