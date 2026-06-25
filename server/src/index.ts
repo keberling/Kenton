@@ -273,6 +273,15 @@ app.get("/api/photos", (req, res) => {
   res.json(store.listPhotos());
 });
 
+app.get("/api/photos/geo", (_req, res) => {
+  syncExistingPhotoMatches();
+  const points = store.listPhotoGeoPoints();
+  res.json({
+    points,
+    total: points.length,
+  });
+});
+
 app.get("/api/photos/:id", (req, res) => {
   const photo = store.getPhoto(req.params.id);
   if (!photo) {

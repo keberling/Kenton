@@ -1,4 +1,4 @@
-import { Activity, Cpu, Images, MapPinned, Radio, Upload } from "lucide-react";
+import { Activity, Cpu, Globe2, Images, MapPinned, Radio, Upload } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
 import { AuthPanel } from "./AuthPanel";
@@ -11,6 +11,7 @@ const links = [
   { to: "/", label: "Ingest", icon: Upload, code: "ING" },
   { to: "/sites", label: "Deployments", icon: MapPinned, code: "DEP" },
   { to: "/photos", label: "Archive", icon: Images, code: "ARC" },
+  { to: "/map", label: "Origins", icon: Globe2, code: "MAP" },
 ];
 
 function formatSyncAge(ms: number | null): string {
@@ -149,7 +150,7 @@ export function Layout() {
         </div>
       </div>
 
-      <nav className="panel window safe-bottom fixed inset-x-3 bottom-3 z-30 grid grid-cols-3 gap-1.5 rounded-2xl p-1.5 lg:hidden">
+      <nav className="panel window safe-bottom fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 gap-1 rounded-2xl p-1.5 lg:hidden">
         {links.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

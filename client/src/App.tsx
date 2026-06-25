@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { PhotosPage } from "./pages/PhotosPage";
 import { SiteDetailPage } from "./pages/SiteDetailPage";
 import { SitesPage } from "./pages/SitesPage";
+import { MapPage } from "./pages/MapPage";
 import { UploadPage } from "./pages/UploadPage";
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="sites" element={<SitesPage />} />
         <Route path="sites/:id" element={<SiteDetailPage />} />
         <Route path="photos" element={<PhotosPage />} />
+        <Route path="map" element={<MapPage />} />
       </Route>
     </Routes>
   );

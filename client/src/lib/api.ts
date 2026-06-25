@@ -64,6 +64,12 @@ export function deleteSite(id: string) {
   return fetch(`/api/sites/${id}`, { method: "DELETE" }).then((r) => parse<{ ok: boolean }>(r));
 }
 
+export function getPhotoGeoPoints() {
+  return fetch("/api/photos/geo").then((r) =>
+    parse<{ points: Array<{ lat: number; lng: number }>; total: number }>(r),
+  );
+}
+
 export function getPhotos(params?: { siteId?: string; unassigned?: boolean }) {
   const query = new URLSearchParams();
   if (params?.siteId) query.set("siteId", params.siteId);

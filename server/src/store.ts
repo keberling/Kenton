@@ -440,6 +440,13 @@ class Store {
     return row;
   }
 
+  listPhotoGeoPoints(): Array<{ lat: number; lng: number }> {
+    const rows = db
+      .prepare(`SELECT lat, lng FROM photos WHERE lat IS NOT NULL AND lng IS NOT NULL`)
+      .all() as Array<{ lat: number; lng: number }>;
+    return rows;
+  }
+
   stats() {
     const total = db.prepare(`SELECT COUNT(*) AS c FROM photos`).get() as { c: number };
     const unassigned = db.prepare(`SELECT COUNT(*) AS c FROM photos WHERE site_id IS NULL`).get() as { c: number };
