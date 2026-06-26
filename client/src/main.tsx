@@ -13,13 +13,13 @@ void registerServiceWorker();
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <ThemeProvider>
-      <LiveDataProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <LiveDataProvider>
           <IngestProvider>
             <App />
           </IngestProvider>
-        </AuthProvider>
-      </LiveDataProvider>
+        </LiveDataProvider>
+      </AuthProvider>
     </ThemeProvider>
   </BrowserRouter>,
 );
