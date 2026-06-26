@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Building2, Download, Plug, RefreshCw, Search } from "lucide-react";
+import { Building2, ChevronDown, Download, Plug, RefreshCw, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   getAutotaskCompanies,
@@ -13,9 +13,15 @@ import { TechStatusChip } from "./TechMeta";
 interface AutotaskImportPanelProps {
   onImported?: (message: string) => void;
   onError?: (message: string) => void;
+  defaultCollapsed?: boolean;
 }
 
-export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanelProps) {
+export function AutotaskImportPanel({
+  onImported,
+  onError,
+  defaultCollapsed = false,
+}: AutotaskImportPanelProps) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [zoneName, setZoneName] = useState<string | null>(null);
@@ -111,7 +117,7 @@ export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanel
 
   if (configured === null) {
     return (
-      <section className="panel window rounded-2xl p-5">
+      <section className="panel window rounded-2xl px-4 py-3">
         <p className="font-mono text-xs text-white/35">Checking Autotask integration…</p>
       </section>
     );
@@ -119,15 +125,29 @@ export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanel
 
   if (!configured) {
     return (
-      <section className="panel window rounded-2xl p-5">
-        <div className="flex items-start gap-3">
-          <div className="neu-inset flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
-            <Plug size={18} className="text-amber-300" />
+      <section className="panel window overflow-hidden rounded-2xl">
+        <button
+          type="button"
+          onClick={() => setCollapsed((prev) => !prev)}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.02]"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="neu-inset flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+              <Plug size={16} className="text-amber-300" />
+            </div>
+            <div className="min-w-0">
+              <p className="hud-label text-amber-300/80">Autotask PSA</p>
+              <p className="truncate text-sm text-white/50">Not configured — add API credentials</p>
+            </div>
           </div>
-          <div>
-            <p className="hud-label text-amber-300/80">Autotask PSA</p>
-            <h3 className="font-display mt-1 text-lg font-bold text-white">Connect client directory</h3>
-            <p className="mt-2 text-sm leading-relaxed text-white/45">
+          <ChevronDown
+            size={16}
+            className={`shrink-0 text-white/30 transition ${collapsed ? "" : "rotate-180"}`}
+          />
+        </button>
+        {!collapsed && (
+          <div className="border-t border-white/5 px-4 pb-4 pt-3">
+            <p className="text-sm leading-relaxed text-white/45">
               Add your Autotask API credentials to the server environment, then redeploy. Kenton will
               pull active customer organizations and their addresses into deployments.
             </p>
@@ -138,7 +158,7 @@ export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanel
               <li>AUTOTASK_ZONE_URL (optional)</li>
             </ul>
           </div>
-        </div>
+        )}
       </section>
     );
   }
@@ -150,19 +170,40 @@ export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanel
   });
 
   return (
-    <section className="panel window rounded-2xl p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="hud-label text-violet-300/80">Autotask PSA</p>
-          <h3 className="font-display mt-1 text-lg font-bold text-white">Import clients</h3>
-          <p className="mt-2 text-sm text-white/45">
-            Pull active Autotask customers and register them as deployments with geocoded addresses.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+    <section className="panel window overflow-hidden rounded-2xl">
+      <button
+        type="button"
+        onClick={() => setCollapsed((prev) => !prev)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.02]"
+      >
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <div className="neu-inset flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+            <Building2 size={16} className="text-violet-300" />
+          </div>
+          <div className="min-w-0">
+            <p className="hud-label text-violet-300/80">Autotask PSA</p>
+            <p className="truncate text-sm text-white/50">
+              Import clients · {withAddress.length} with addresses
+              {selected.size > 0 ? ` · ${selected.size} selected` : ""}
+            </p>
+          </div>
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {username && <TechStatusChip code="API" label={username} tone="muted" />}
             {zoneName && <TechStatusChip code="ZONE" label={zoneName} tone="cyan" />}
           </div>
         </div>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-white/30 transition ${collapsed ? "" : "rotate-180"}`}
+        />
+      </button>
+
+      {!collapsed && (
+        <div className="border-t border-white/5 px-4 pb-4 pt-3 sm:px-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <p className="text-sm text-white/45">
+          Pull active Autotask customers and register them as deployments with geocoded addresses.
+        </p>
         <button
           type="button"
           onClick={() => void handleTest()}
@@ -174,7 +215,7 @@ export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanel
         </button>
       </div>
 
-      <div className="relative mt-5">
+      <div className="relative mt-4">
         <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
         <input
           value={search}
@@ -241,6 +282,8 @@ export function AutotaskImportPanel({ onImported, onError }: AutotaskImportPanel
             : `Import ${importable.length || ""} deployment${importable.length === 1 ? "" : "s"}`.trim()}
         </button>
       </div>
+        </div>
+      )}
     </section>
   );
 }
