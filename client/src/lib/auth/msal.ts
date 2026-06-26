@@ -31,6 +31,7 @@ export async function initMsal(config: AuthConfig): Promise<PublicClientApplicat
     await instance.initialize();
     try {
       const result = await instance.handleRedirectPromise();
+      lastRedirectResult = result;
       storeAuthResult(instance, result);
     } catch (err) {
       console.warn("Microsoft sign-in redirect could not be completed:", err);
@@ -56,9 +57,22 @@ export function graphRequest(): SilentRequest {
   return { scopes: ["User.Read"] };
 }
 
-/** Graph User.Read token — works without Expose an API on the app registration. */
+/** OpenID + Graph — idToken is sent to the Kenton API; accessToken is for Graph profile. */
 export function apiRequest(_config: AuthConfig): SilentRequest {
-  return { scopes: ["User.Read"] };
+  return { scopes: [...DELEGATED_SCOPES] };
+}
+
+/** Kenton API expects the Entra ID token (aud = client ID), not the Graph access token. */
+export function apiBearerToken(result: AuthenticationResult): string | null {
+  return result.idToken || null;
+}
+
+let lastRedirectResult: AuthenticationResult | null = null;
+
+export function consumeRedirectResult(): AuthenticationResult | null {
+  const result = lastRedirectResult;
+  lastRedirectResult = null;
+  return result;
 }
 
 export function activeAccount(instance: PublicClientApplication): AccountInfo | null {

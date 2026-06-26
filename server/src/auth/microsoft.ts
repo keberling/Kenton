@@ -54,9 +54,7 @@ export function authUserFromPayload(payload: JWTPayload): AuthUser | null {
   };
 }
 
-export async function verifyMicrosoftAccessToken(token: string): Promise<AuthUser | null> {
-  if (!azureAuthEnabled()) return null;
-
+async function verifyWithAudiences(token: string, audiences: string[]): Promise<AuthUser | null> {
   const tenantId = azureTenantId();
   const issuers = [
     azureIssuer(),
@@ -67,15 +65,26 @@ export async function verifyMicrosoftAccessToken(token: string): Promise<AuthUse
   try {
     const { payload } = await jwtVerify(token, getJwks(), {
       issuer: issuers,
-      audience: azureAudiences(),
+      audience: audiences,
+      clockTolerance: 60,
     });
     return authUserFromPayload(payload);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("Microsoft token verification failed:", err);
-    }
+  } catch {
     return null;
   }
+}
+
+export async function verifyMicrosoftAccessToken(token: string): Promise<AuthUser | null> {
+  if (!azureAuthEnabled()) return null;
+
+  const clientId = azureClientId();
+
+  // SPA login sends the Entra ID token (aud = app client ID).
+  const fromIdToken = await verifyWithAudiences(token, [clientId]);
+  if (fromIdToken) return fromIdToken;
+
+  // Fallback: Graph or custom API access tokens.
+  return verifyWithAudiences(token, azureAudiences());
 }
 
 export function publicAuthConfig() {

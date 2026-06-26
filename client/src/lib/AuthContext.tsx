@@ -8,16 +8,16 @@ import {
 } from "react";
 import {
   activeAccount,
+  apiBearerToken,
   apiRequest,
   getMsal,
-  graphRequest,
   initMsal,
   loginRequest,
   storeAuthResult,
 } from "./auth/msal";
+import { establishSession } from "./auth/session";
 import { setTokenProvider } from "./auth/token";
-import type { AuthConfig, GraphProfile, User } from "./auth/types";
-import { authHeaders } from "./auth/token";
+import type { AuthConfig, User } from "./auth/types";
 
 interface AuthContextValue {
   ready: boolean;
@@ -48,43 +48,6 @@ async function fetchAuthConfig(): Promise<AuthConfig> {
   return res.json() as Promise<AuthConfig>;
 }
 
-async function fetchMe(): Promise<User | null> {
-  const res = await fetch("/api/auth/me", { headers: await authHeaders() });
-  if (!res.ok) return null;
-  const body = (await res.json()) as { user: User };
-  return body.user;
-}
-
-async function fetchGraphProfile(graphToken: string): Promise<GraphProfile | null> {
-  const res = await fetch(
-    "https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName,jobTitle,department,officeLocation",
-    { headers: { Authorization: `Bearer ${graphToken}` } },
-  );
-  if (!res.ok) return null;
-  return res.json() as Promise<GraphProfile>;
-}
-
-async function postProfileSync(patch: GraphProfile, accessToken: string): Promise<User | null> {
-  const res = await fetch("/api/auth/sync", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      displayName: patch.displayName,
-      email: patch.mail ?? patch.userPrincipalName ?? null,
-      preferredUsername: patch.userPrincipalName ?? null,
-      jobTitle: patch.jobTitle ?? null,
-      department: patch.department ?? null,
-      officeLocation: patch.officeLocation ?? null,
-    }),
-  });
-  if (!res.ok) return null;
-  const body = (await res.json()) as { user: User };
-  return body.user;
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [config, setConfig] = useState<AuthConfig>(disabledConfig);
@@ -105,40 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         account,
       });
       storeAuthResult(instance, result);
-      return result.accessToken;
+      return apiBearerToken(result);
     } catch {
-      await instance.acquireTokenRedirect({
-        ...apiRequest(config),
-        account,
-      });
       return null;
     }
   }, [config]);
 
   const syncProfile = useCallback(async () => {
-    const instance = getMsal();
-    if (!instance || !config.enabled) return;
-
-    const account = activeAccount(instance);
-    if (!account) return;
-
-    try {
-      const graphResult = await instance.acquireTokenSilent({
-        ...graphRequest(),
-        account,
-      });
-      const profile = await fetchGraphProfile(graphResult.accessToken);
-      if (profile) {
-        const synced = await postProfileSync(profile, graphResult.accessToken);
-        if (synced) setUser(synced);
-        return;
-      }
-    } catch {
-      // Graph enrichment is optional
-    }
-
-    const me = await fetchMe();
-    if (me) setUser(me);
+    const synced = await establishSession(config);
+    if (synced) setUser(synced);
   }, [config]);
 
   const login = useCallback(async () => {
@@ -169,9 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       setConfig(nextConfig);
 
-      const instance = await initMsal(nextConfig);
+      await initMsal(nextConfig);
       if (cancelled) return;
 
+      const instance = getMsal();
       if (instance) {
         const account = activeAccount(instance);
         setLabel(account?.name ?? account?.username ?? null);
@@ -188,36 +127,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             account: acct,
           });
           storeAuthResult(inst, result);
-          return result.accessToken;
+          return apiBearerToken(result);
         } catch {
           return null;
         }
       });
 
-      if (instance && activeAccount(instance)) {
-        const account = activeAccount(instance);
-        if (account && nextConfig.enabled) {
-          try {
-            const graphResult = await instance.acquireTokenSilent({
-              ...graphRequest(),
-              account,
-            });
-            const profile = await fetchGraphProfile(graphResult.accessToken);
-            if (profile) {
-              const synced = await postProfileSync(profile, graphResult.accessToken);
-              if (synced && !cancelled) setUser(synced);
-            } else if (!cancelled) {
-              const me = await fetchMe();
-              if (me) setUser(me);
-            }
-          } catch {
-            if (!cancelled) {
-              const me = await fetchMe();
-              if (me) setUser(me);
-            }
-          }
-        }
-      }
+      const synced = await establishSession(nextConfig);
+      if (synced && !cancelled) setUser(synced);
 
       if (!cancelled) setReady(true);
     })();

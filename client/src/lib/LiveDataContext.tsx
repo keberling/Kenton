@@ -25,7 +25,7 @@ interface LiveDataContextValue {
 const LiveDataContext = createContext<LiveDataContextValue | null>(null);
 
 export function LiveDataProvider({ children }: { children: React.ReactNode }) {
-  const { config, user } = useAuth();
+  const { ready, config, user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -36,7 +36,8 @@ export function LiveDataProvider({ children }: { children: React.ReactNode }) {
     setDataVersion((v) => v + 1);
   }, []);
 
-  const canPollStats = !config.enabled || !config.viewRequired || Boolean(user);
+  const canPollStats =
+    ready && (!config.enabled || !config.viewRequired || Boolean(user));
 
   const refreshStats = useCallback(async () => {
     if (!canPollStats) return;
@@ -50,7 +51,7 @@ export function LiveDataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSyncing(false);
     }
-  }, [canPollStats]);
+  }, [canPollStats, ready]);
 
   useEffect(() => {
     void refreshStats();
