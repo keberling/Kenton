@@ -19,6 +19,29 @@ function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
+function formatAutotaskHttpError(
+  entity: string,
+  status: number,
+  text: string,
+  zoneUrl?: string,
+): string {
+  if (status === 401) {
+    const hints = [
+      "Autotask authentication failed (401). Check:",
+      "• AUTOTASK_API_USERNAME = API-only user email (not your login)",
+      "• AUTOTASK_API_SECRET = that API user's password",
+      "• AUTOTASK_INTEGRATION_CODE = tracking identifier from that user's Security tab (long key, not the integration name)",
+      "• User security level is API User (API-only) with Companies read access",
+      zoneUrl ? `• API zone: ${zoneUrl}` : "",
+    ].filter(Boolean);
+    return hints.join(" ");
+  }
+
+  return `Autotask ${entity} query failed (${status})${text ? `: ${text.slice(0, 180)}` : ""}${
+    zoneUrl ? ` [zone: ${zoneUrl}]` : ""
+  }`;
+}
+
 export function requireAutotaskConfig() {
   const config = autotaskConfig();
   if (!config) {
@@ -119,9 +142,7 @@ async function autotaskQuery<T>(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(
-      `Autotask ${entity} query failed (${response.status})${text ? `: ${text.slice(0, 180)}` : ""}`,
-    );
+    throw new Error(formatAutotaskHttpError(entity, response.status, text, baseUrl));
   }
 
   const payload = (await response.json()) as QueryResponse<T>;
