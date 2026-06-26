@@ -29,7 +29,12 @@ export async function initMsal(config: AuthConfig): Promise<PublicClientApplicat
     });
 
     await instance.initialize();
-    await instance.handleRedirectPromise();
+    try {
+      const result = await instance.handleRedirectPromise();
+      storeAuthResult(instance, result);
+    } catch (err) {
+      console.warn("Microsoft sign-in redirect could not be completed:", err);
+    }
     msal = instance;
     return instance;
   })();
@@ -41,19 +46,19 @@ export function getMsal(): PublicClientApplication | null {
   return msal;
 }
 
-export function loginRequest(config: AuthConfig): RedirectRequest {
-  const scopes = ["openid", "profile", "email"];
-  if (config.apiScope) scopes.push(config.apiScope);
-  return { scopes };
+const DELEGATED_SCOPES = ["openid", "profile", "email", "User.Read"] as const;
+
+export function loginRequest(_config: AuthConfig): RedirectRequest {
+  return { scopes: [...DELEGATED_SCOPES] };
 }
 
 export function graphRequest(): SilentRequest {
   return { scopes: ["User.Read"] };
 }
 
-export function apiRequest(config: AuthConfig): SilentRequest {
-  const scopes = config.apiScope ? [config.apiScope] : ["openid", "profile", "email"];
-  return { scopes };
+/** Graph User.Read token — works without Expose an API on the app registration. */
+export function apiRequest(_config: AuthConfig): SilentRequest {
+  return { scopes: ["User.Read"] };
 }
 
 export function activeAccount(instance: PublicClientApplication): AccountInfo | null {

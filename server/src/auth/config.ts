@@ -46,7 +46,12 @@ export function azureApiScope(): string {
   return `api://${clientId}/access_as_user`;
 }
 
+const GRAPH_AUDIENCES = [
+  "00000003-0000-0000-c000-000000000000",
+  "https://graph.microsoft.com",
+] as const;
+
 export function azureAudiences(): string[] {
   const clientId = azureClientId();
-  return [clientId, `api://${clientId}`];
+  return [clientId, `api://${clientId}`, ...GRAPH_AUDIENCES];
 }
