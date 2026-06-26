@@ -74,6 +74,26 @@ export function SitesPage() {
 
   const defaultRadius = sites[0]?.radiusMeters;
 
+  const handleAutotaskMessage = useCallback((nextMessage: string) => {
+    setMessage(nextMessage);
+    setError(null);
+  }, []);
+
+  const handleAutotaskImported = useCallback(
+    (nextMessage: string) => {
+      setMessage(nextMessage);
+      setError(null);
+      invalidate();
+      load();
+    },
+    [invalidate, load],
+  );
+
+  const handleAutotaskError = useCallback((nextError: string) => {
+    setError(nextError);
+    setMessage(null);
+  }, []);
+
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -104,16 +124,9 @@ export function SitesPage() {
 
       <AutotaskImportPanel
         defaultCollapsed
-        onImported={(nextMessage) => {
-          setMessage(nextMessage);
-          setError(null);
-          invalidate();
-          load();
-        }}
-        onError={(nextError) => {
-          setError(nextError);
-          setMessage(null);
-        }}
+        onMessage={handleAutotaskMessage}
+        onImported={handleAutotaskImported}
+        onError={handleAutotaskError}
       />
 
       <section className="panel window overflow-hidden rounded-2xl">
