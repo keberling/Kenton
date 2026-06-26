@@ -14,6 +14,7 @@ import { geocodeAddress } from "./geocode.js";
 import { buildDeploymentRecommendations } from "./siteRecommendations.js";
 import {
   autotaskStatus,
+  diagnoseAutotaskConnection,
   importAutotaskCompanies,
   listAutotaskCompaniesForImport,
   testAutotaskConnection,
@@ -187,9 +188,17 @@ app.post("/api/integrations/autotask/test", async (_req, res) => {
     const result = await testAutotaskConnection();
     res.json({ ok: true, ...result });
   } catch (err) {
+    let diagnose = null;
+    try {
+      diagnose = await diagnoseAutotaskConnection();
+    } catch {
+      /* config or zone lookup failed — omit diagnose */
+    }
     res.status(502).json({
       ok: false,
       error: err instanceof Error ? err.message : "Autotask connection failed",
+      diagnose,
+      env: autotaskStatus().env,
     });
   }
 });

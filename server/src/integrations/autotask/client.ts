@@ -162,21 +162,64 @@ export async function lookupAutotaskZone(username: string): Promise<AutotaskZone
   return (await zoneResponse.json()) as AutotaskZoneInfo;
 }
 
-export async function testAutotaskConnection(): Promise<{
+export async function diagnoseAutotaskConnection(): Promise<{
   zoneName: string;
   zoneUrl: string;
   webUrl: string;
+  usernameRecognized: boolean;
+  authOk: boolean;
+  authError?: string;
 }> {
   const config = requireAutotaskConfig();
   const zone = await lookupAutotaskZone(config.username);
   const zoneUrl = await resolveAutotaskZoneUrl(config);
 
-  await autotaskQuery("Companies", {
-    filter: [{ op: "exist", field: "id" }],
-    MaxRecords: 1,
-  });
+  try {
+    const response = await fetch(`${zoneUrl}/v1.0/Companies/query`, {
+      method: "POST",
+      headers: authHeaders(config),
+      body: JSON.stringify({ filter: [{ op: "exist", field: "id" }], MaxRecords: 1 }),
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return {
+        zoneName: zone.zoneName,
+        zoneUrl,
+        webUrl: zone.webUrl,
+        usernameRecognized: true,
+        authOk: false,
+        authError: formatAutotaskHttpError("Companies", response.status, text, zoneUrl),
+      };
+    }
+    return {
+      zoneName: zone.zoneName,
+      zoneUrl,
+      webUrl: zone.webUrl,
+      usernameRecognized: true,
+      authOk: true,
+    };
+  } catch (err) {
+    return {
+      zoneName: zone.zoneName,
+      zoneUrl,
+      webUrl: zone.webUrl,
+      usernameRecognized: true,
+      authOk: false,
+      authError: err instanceof Error ? err.message : "Auth probe failed",
+    };
+  }
+}
 
-  return { zoneName: zone.zoneName, zoneUrl, webUrl: zone.webUrl };
+export async function testAutotaskConnection(): Promise<{
+  zoneName: string;
+  zoneUrl: string;
+  webUrl: string;
+}> {
+  const diag = await diagnoseAutotaskConnection();
+  if (!diag.authOk) {
+    throw new Error(diag.authError ?? "Autotask authentication failed");
+  }
+  return { zoneName: diag.zoneName, zoneUrl: diag.zoneUrl, webUrl: diag.webUrl };
 }
 
 export async function queryAutotaskCompanies(options?: {

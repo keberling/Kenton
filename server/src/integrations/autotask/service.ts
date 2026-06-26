@@ -142,4 +142,4 @@ export async function importAutotaskCompanies(companyIds: number[]): Promise<Aut
   return result;
 }
 
-export { testAutotaskConnection };
+export { diagnoseAutotaskConnection, testAutotaskConnection } from "./client.js";
