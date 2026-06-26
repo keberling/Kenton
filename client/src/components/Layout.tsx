@@ -1,4 +1,4 @@
-import { Activity, Cpu, Globe2, HardDrive, Images, MapPinned, Radio, Upload } from "lucide-react";
+import { Activity, Cpu, Globe2, HardDrive, Images, MapPinned, Radio, Settings2, Upload } from "lucide-react";
 import { MatchNavBadge } from "./MatchNavBadge";
 import { RescanMatchesButton } from "./RescanMatchesButton";
 import { NavLink, Outlet } from "react-router-dom";
@@ -16,6 +16,7 @@ const links = [
   { to: "photos", label: "Archive", icon: Images, code: "ARC" },
   { to: "map", label: "Origins", icon: Globe2, code: "MAP" },
   { to: "backups", label: "Backups", icon: HardDrive, code: "BKP" },
+  { to: "settings", label: "Settings", icon: Settings2, code: "CFG" },
 ];
 
 function formatSyncAge(ms: number | null): string {
@@ -167,7 +168,7 @@ export function Layout() {
         </div>
       </div>
 
-      <nav className="panel window safe-bottom fixed inset-x-2 bottom-3 z-30 grid grid-cols-6 gap-0.5 rounded-2xl p-1.5 lg:hidden">
+      <nav className="panel window safe-bottom fixed inset-x-2 bottom-3 z-30 grid grid-cols-7 gap-0.5 rounded-2xl p-1.5 lg:hidden">
         {links.map(({ to, label, icon: Icon, external }) =>
           external ? (
             <a

@@ -1,4 +1,5 @@
 import { graphAppAuthEnabled } from "../auth/config.js";
+import { sharePointDriveId, sharePointSettingsPublic, sharePointSiteUrl } from "./settings.js";
 
 export function backupEnabled(): boolean {
   return process.env.BACKUP_ENABLED === "true";
@@ -17,28 +18,21 @@ export function backupCronTimezone(): string {
   return process.env.BACKUP_TIMEZONE?.trim() || "America/Chicago";
 }
 
-export function sharePointDriveId(): string | null {
-  const value = process.env.SHAREPOINT_DRIVE_ID?.trim();
-  return value || null;
-}
-
-export function sharePointFolderPath(): string {
-  const value = process.env.SHAREPOINT_FOLDER_PATH?.trim();
-  return value || "Kenton/Backups";
-}
-
 export function sharePointConfigured(): boolean {
   return backupEnabled() && graphAppAuthEnabled() && Boolean(sharePointDriveId());
 }
 
 export function backupStatus() {
+  const sp = sharePointSettingsPublic();
   return {
     enabled: backupEnabled(),
     retention: backupRetentionCount(),
     cron: backupCronSchedule(),
     timezone: backupCronTimezone(),
     sharePointConfigured: sharePointConfigured(),
-    driveId: sharePointDriveId(),
-    folderPath: sharePointFolderPath(),
+    siteUrl: sp.siteUrl ?? sharePointSiteUrl(),
+    folderPath: sp.folderPath,
+    driveName: sp.driveName,
+    graphAuthReady: sp.graphAuthReady,
   };
 }

@@ -1,5 +1,6 @@
 import { Download, HardDrive, Loader2, Play, RefreshCw } from "lucide-react";
 import { useCallback, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
 import { useLivePoll } from "../lib/LiveDataContext";
@@ -78,9 +79,24 @@ export function BackupsPage() {
             <TechMeta label="Retention" value={`${status.retention} backups`} accent="muted" />
             <TechMeta label="Schedule" value={status.cron} accent="muted" />
             <TechMeta label="Timezone" value={status.timezone} accent="muted" />
-            <TechMeta label="Folder" value={status.folderPath} accent="cyan" />
+            <TechMeta
+              label="SharePoint"
+              value={status.siteUrl ? status.siteUrl.replace(/^https?:\/\//, "") : "not configured"}
+              accent={status.sharePointConfigured ? "cyan" : "amber"}
+            />
+            <TechMeta label="Folder" value={status.folderPath} accent="muted" />
           </TechMetaRow>
         </section>
+      )}
+
+      {status && !status.sharePointConfigured && (
+        <p className="rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
+          SharePoint destination is not configured. Set the site URL and folder in{" "}
+          <Link to="settings" className="text-cyan-300 underline underline-offset-2">
+            Settings
+          </Link>
+          .
+        </p>
       )}
 
       {message && <p className="font-mono text-sm text-emerald-400">{message}</p>}

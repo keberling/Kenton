@@ -5,6 +5,15 @@ import type { AutotaskConfig } from "./integrations/autotask/config.js";
 import type { AuthUser, Photo, PhotoUploader, Site, User } from "./types.js";
 
 const AUTOTASK_SETTINGS_KEY = "autotask";
+const SHAREPOINT_BACKUP_SETTINGS_KEY = "sharepoint_backup";
+
+export interface SharePointBackupSettingsRow {
+  siteUrl: string;
+  folderPath: string;
+  driveId: string;
+  driveName: string | null;
+  resolvedAt: number;
+}
 
 interface SiteRow {
   id: string;
@@ -592,6 +601,37 @@ class Store {
 
   clearAutotaskCredentials(): void {
     db.prepare(`DELETE FROM integration_settings WHERE key = ?`).run(AUTOTASK_SETTINGS_KEY);
+  }
+
+  getSharePointBackupSettings(): SharePointBackupSettingsRow | null {
+    const row = db
+      .prepare(`SELECT value FROM integration_settings WHERE key = ?`)
+      .get(SHAREPOINT_BACKUP_SETTINGS_KEY) as { value: string } | undefined;
+    if (!row?.value) return null;
+    try {
+      const parsed = JSON.parse(row.value) as SharePointBackupSettingsRow;
+      if (!parsed.siteUrl || !parsed.driveId || !parsed.folderPath) return null;
+      return {
+        siteUrl: parsed.siteUrl,
+        folderPath: parsed.folderPath,
+        driveId: parsed.driveId,
+        driveName: parsed.driveName ?? null,
+        resolvedAt: parsed.resolvedAt ?? Date.now(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  setSharePointBackupSettings(settings: SharePointBackupSettingsRow): void {
+    db.prepare(
+      `INSERT INTO integration_settings (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ).run(SHAREPOINT_BACKUP_SETTINGS_KEY, JSON.stringify(settings), Date.now());
+  }
+
+  clearSharePointBackupSettings(): void {
+    db.prepare(`DELETE FROM integration_settings WHERE key = ?`).run(SHAREPOINT_BACKUP_SETTINGS_KEY);
   }
 }
 

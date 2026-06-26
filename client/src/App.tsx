@@ -4,6 +4,7 @@ import { Layout } from "./components/Layout";
 import { PublicUploadLayout } from "./components/PublicUploadLayout";
 import { RequireAuth } from "./components/RequireAuth";
 import { BackupsPage } from "./pages/BackupsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { MatchQueuePage } from "./pages/MatchQueuePage";
 import { PhotosPage } from "./pages/PhotosPage";
 import { PublicUploadPage } from "./pages/PublicUploadPage";
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="photos" element={<PhotosPage />} />
           <Route path="map" element={<MapPage />} />
           <Route path="backups" element={<BackupsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </>

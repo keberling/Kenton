@@ -43,6 +43,11 @@ import {
 } from "./uploadSessions.js";
 import { backupPublicStatus, ensureBackupDownload, runBackup, syncBackupManifestFromSharePoint } from "./backup/service.js";
 import { startBackupScheduler } from "./backup/scheduler.js";
+import {
+  saveSharePointSettings,
+  sharePointSettingsPublic,
+  testSharePointSettings,
+} from "./backup/settings.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -667,6 +672,43 @@ app.delete("/api/photos/:id", (req, res) => {
   const filePath = path.join(uploadDir, removed.filename);
   fs.unlink(filePath, () => {});
   res.json({ ok: true });
+});
+
+app.get("/api/settings/backup-sharepoint", (_req, res) => {
+  res.json(sharePointSettingsPublic());
+});
+
+app.put("/api/settings/backup-sharepoint", async (req, res) => {
+  const siteUrl = typeof req.body?.siteUrl === "string" ? req.body.siteUrl : "";
+  const folderPath = typeof req.body?.folderPath === "string" ? req.body.folderPath : "";
+
+  try {
+    const settings = await saveSharePointSettings({ siteUrl, folderPath });
+    const test = await testSharePointSettings();
+    res.json({
+      ...sharePointSettingsPublic(),
+      saved: true,
+      test,
+      driveId: settings.driveId,
+    });
+  } catch (err) {
+    res.status(502).json({
+      error: err instanceof Error ? err.message : "Could not save SharePoint settings",
+      ...sharePointSettingsPublic(),
+    });
+  }
+});
+
+app.post("/api/settings/backup-sharepoint/test", async (_req, res) => {
+  try {
+    const test = await testSharePointSettings();
+    res.json(test);
+  } catch (err) {
+    res.status(502).json({
+      ok: false,
+      message: err instanceof Error ? err.message : "SharePoint test failed",
+    });
+  }
 });
 
 app.get("/api/backups", async (_req, res) => {

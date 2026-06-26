@@ -253,14 +253,45 @@ export interface BackupRecord {
   error: string | null;
 }
 
+export interface SharePointBackupSettings {
+  configured: boolean;
+  graphAuthReady: boolean;
+  siteUrl: string | null;
+  folderPath: string;
+  driveName: string | null;
+  updatedAt: number | null;
+  saved?: boolean;
+  test?: { ok: boolean; message: string };
+}
+
 export interface BackupStatus {
   enabled: boolean;
   retention: number;
   cron: string;
   timezone: string;
   sharePointConfigured: boolean;
-  driveId: string | null;
+  siteUrl: string | null;
   folderPath: string;
+  driveName: string | null;
+  graphAuthReady: boolean;
+}
+
+export function getSharePointBackupSettings() {
+  return apiFetch("/api/settings/backup-sharepoint").then((r) => parse<SharePointBackupSettings>(r));
+}
+
+export function saveSharePointBackupSettings(input: { siteUrl: string; folderPath: string }) {
+  return apiFetch("/api/settings/backup-sharepoint", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((r) => parse<SharePointBackupSettings>(r));
+}
+
+export function testSharePointBackupSettings() {
+  return apiFetch("/api/settings/backup-sharepoint/test", { method: "POST" }).then((r) =>
+    parse<{ ok: boolean; message: string }>(r),
+  );
 }
 
 export async function getBackups() {

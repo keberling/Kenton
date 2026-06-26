@@ -6,7 +6,122 @@ import {
   azureTenantId,
   graphAppAuthEnabled,
 } from "../auth/config.js";
-import { sharePointDriveId, sharePointFolderPath } from "./config.js";
+import { store } from "../store.js";
+import { DEFAULT_SHAREPOINT_FOLDER, normalizeFolderPath } from "./paths.js";
+
+function sharePointDriveId(): string | null {
+  return store.getSharePointBackupSettings()?.driveId ?? null;
+}
+
+function sharePointFolderPath(): string {
+  return store.getSharePointBackupSettings()?.folderPath ?? DEFAULT_SHAREPOINT_FOLDER;
+}
+
+export function parseSharePointSiteUrl(input: string): { hostname: string; sitePath: string } {
+  let url: URL;
+  try {
+    url = new URL(input.trim());
+  } catch {
+    throw new Error("Enter a valid SharePoint URL (https://…sharepoint.com/sites/…)");
+  }
+
+  if (!url.hostname.includes("sharepoint.com")) {
+    throw new Error("URL must be a SharePoint site link");
+  }
+
+  const siteMatch = url.pathname.match(/^(\/sites\/[^/]+)/i) ?? url.pathname.match(/^(\/teams\/[^/]+)/i);
+  if (!siteMatch) {
+    throw new Error("URL must include a site path like /sites/YourSite or /teams/YourTeam");
+  }
+
+  return { hostname: url.hostname, sitePath: siteMatch[1] };
+}
+
+export async function resolveDriveFromSiteUrl(
+  siteUrl: string,
+): Promise<{ driveId: string; driveName: string; webUrl: string | null }> {
+  const { hostname, sitePath } = parseSharePointSiteUrl(siteUrl);
+  const token = await getGraphAppToken();
+  const siteRes = await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${hostname}:${sitePath}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+
+  if (!siteRes.ok) {
+    const text = await siteRes.text();
+    throw new Error(`Could not resolve SharePoint site (${siteRes.status}): ${text.slice(0, 240)}`);
+  }
+
+  const site = (await siteRes.json()) as { id: string };
+  const driveRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drive`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!driveRes.ok) {
+    const text = await driveRes.text();
+    throw new Error(`Could not resolve document library (${driveRes.status}): ${text.slice(0, 240)}`);
+  }
+
+  const drive = (await driveRes.json()) as { id: string; name?: string; webUrl?: string };
+  if (!drive.id) throw new Error("SharePoint site has no default document library");
+
+  return {
+    driveId: drive.id,
+    driveName: drive.name ?? "Documents",
+    webUrl: drive.webUrl ?? null,
+  };
+}
+
+export async function testSharePointFolderAccess(driveId: string, folderPath: string): Promise<void> {
+  const token = await getGraphAppToken();
+  const segments = normalizeFolderPath(folderPath).split("/").filter(Boolean);
+  if (!segments.length) throw new Error("Backup folder path is required");
+
+  let currentPath = "";
+  for (const segment of segments) {
+    currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+    const encoded = currentPath.split("/").map((part) => encodeURIComponent(part)).join("/");
+    const itemRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${encoded}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (itemRes.ok) continue;
+
+    if (itemRes.status !== 404) {
+      const text = await itemRes.text();
+      throw new Error(`SharePoint folder check failed (${itemRes.status}): ${text.slice(0, 240)}`);
+    }
+
+    const parentEncoded = currentPath.includes("/")
+      ? currentPath
+          .split("/")
+          .slice(0, -1)
+          .map((part) => encodeURIComponent(part))
+          .join("/")
+      : "";
+    const childrenUrl = parentEncoded
+      ? `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${parentEncoded}:/children`
+      : `https://graph.microsoft.com/v1.0/drives/${driveId}/root/children`;
+
+    const createRes = await fetch(childrenUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: segment,
+        folder: {},
+        "@microsoft.graph.conflictBehavior": "fail",
+      }),
+    });
+
+    if (!createRes.ok) {
+      const text = await createRes.text();
+      throw new Error(`Could not create folder "${segment}" (${createRes.status}): ${text.slice(0, 240)}`);
+    }
+  }
+}
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
@@ -61,7 +176,7 @@ export async function uploadFileToSharePoint(
   filename: string,
 ): Promise<{ itemId: string; webUrl: string | null }> {
   const driveId = sharePointDriveId();
-  if (!driveId) throw new Error("SHAREPOINT_DRIVE_ID is not configured");
+  if (!driveId) throw new Error("SharePoint backup location is not configured in Settings");
 
   const token = await getGraphAppToken();
   const size = fs.statSync(localPath).size;
@@ -208,7 +323,7 @@ export async function deleteSharePointItems(itemIds: string[]) {
 
 export async function downloadSharePointFile(itemId: string, destination: string) {
   const driveId = sharePointDriveId();
-  if (!driveId) throw new Error("SHAREPOINT_DRIVE_ID is not configured");
+  if (!driveId) throw new Error("SharePoint backup location is not configured in Settings");
 
   const token = await getGraphAppToken();
   const res = await fetch(
