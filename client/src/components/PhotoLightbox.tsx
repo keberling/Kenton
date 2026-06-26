@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, MapPin, Satellite, UserRound, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Satellite, Trash2, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Photo, Site } from "../types";
 import { formatCoords, formatDate, formatUploaderDetail } from "../lib/format";
@@ -13,6 +13,8 @@ interface PhotoLightboxProps {
   sites?: Site[];
   showMatchActions?: boolean;
   onPhotoUpdated?: (photo: Photo) => void;
+  onDelete?: (photoId: string) => void | Promise<void>;
+  deleting?: boolean;
 }
 
 export function PhotoLightbox({
@@ -23,6 +25,8 @@ export function PhotoLightbox({
   sites = [],
   showMatchActions = false,
   onPhotoUpdated,
+  onDelete,
+  deleting = false,
 }: PhotoLightboxProps) {
   const [currentPhoto, setCurrentPhoto] = useState<Photo | null>(null);
   const photo = photos[index];
@@ -38,10 +42,22 @@ export function PhotoLightbox({
   }, [hasNext, index, onChangeIndex]);
 
   useEffect(() => {
+    setCurrentPhoto(null);
+  }, [index, photo?.id]);
+
+  const activePhoto = currentPhoto ?? photo;
+
+  useEffect(() => {
+    if (!activePhoto) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft") goPrev();
       if (event.key === "ArrowRight") goNext();
+      if (onDelete && (event.key === "Delete" || event.key === "Backspace") && !deleting) {
+        event.preventDefault();
+        void onDelete(activePhoto.id);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -50,13 +66,8 @@ export function PhotoLightbox({
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = "";
     };
-  }, [goNext, goPrev, onClose]);
+  }, [activePhoto, deleting, goNext, goPrev, onClose, onDelete]);
 
-  useEffect(() => {
-    setCurrentPhoto(null);
-  }, [index, photo?.id]);
-
-  const activePhoto = currentPhoto ?? photo;
   if (!activePhoto) return null;
 
   const progress = ((index + 1) / photos.length) * 100;
@@ -219,6 +230,22 @@ export function PhotoLightbox({
                     compact
                   />
                 </div>
+              </div>
+            )}
+
+            {onDelete && (
+              <div className="mt-5 border-t border-white/[0.06] pt-4">
+                <p className="hud-label text-rose-300/80">Purge</p>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => void onDelete(activePhoto.id)}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50"
+                >
+                  <Trash2 size={14} />
+                  {deleting ? "Deleting…" : "Delete photo"}
+                </button>
+                <p className="mt-2 font-mono text-[10px] text-white/30">Delete / Backspace</p>
               </div>
             )}
           </aside>
