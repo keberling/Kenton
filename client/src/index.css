@@ -479,50 +479,45 @@ button.neu-raised-sm:hover:not(:disabled) {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-/* ── US sketch origin map ── */
-.us-sketch-paper {
-  fill: color-mix(in srgb, var(--panel-mid) 72%, transparent);
+/* ── US origin map ── */
+.us-map-canvas {
+  fill: color-mix(in srgb, var(--panel-mid) 55%, transparent);
   stroke: var(--border);
   stroke-width: 1;
 }
 
-.us-sketch-outline {
-  fill: color-mix(in srgb, var(--accent-soft) 6%, transparent);
-  stroke: var(--fg-subtle);
-  stroke-width: 1.65;
-  stroke-linecap: round;
+.us-map-state {
+  fill: color-mix(in srgb, var(--fg-faint) 7%, transparent);
+  stroke: color-mix(in srgb, var(--fg-subtle) 55%, transparent);
+  stroke-width: 0.55;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+  transition: fill 0.2s ease;
 }
 
-.us-sketch-outline-ghost {
-  fill: none;
-  stroke: var(--fg-faint);
-  stroke-width: 0.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.45;
-  vector-effect: non-scaling-stroke;
+.us-map-state:hover {
+  fill: color-mix(in srgb, var(--accent-soft) 12%, transparent);
 }
 
-.us-sketch-grid {
+.us-map-grid {
   stroke: var(--grid-line);
-  stroke-width: 0.75;
-  stroke-dasharray: 3 7;
-  opacity: 0.55;
+  stroke-width: 0.5;
+  stroke-dasharray: 4 8;
+  opacity: 0.35;
+  pointer-events: none;
 }
 
-.us-sketch-dot {
+.us-map-dot {
   fill: var(--accent);
-  stroke: color-mix(in srgb, var(--accent-soft) 80%, white 20%);
-  stroke-width: 1.25;
+  stroke: color-mix(in srgb, var(--void) 35%, var(--accent) 65%);
+  stroke-width: 1.5;
 }
 
-.us-sketch-dot-label {
+.us-map-dot-label {
   fill: var(--void);
   font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   pointer-events: none;
 }
 

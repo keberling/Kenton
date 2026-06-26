@@ -1,4 +1,8 @@
-/** Continental US bounds for sketch map projection */
+import { geoAlbersUsa, geoPath, type GeoProjection } from "d3-geo";
+import type { Feature, FeatureCollection, Geometry } from "geojson";
+import statesData from "../data/us-states.json";
+
+/** Continental US bounds for quick inclusion checks */
 export const US_BOUNDS = {
   minLng: -124.85,
   maxLng: -66.95,
@@ -6,49 +10,13 @@ export const US_BOUNDS = {
   maxLat: 49.38,
 };
 
-/** Simplified lower-48 coastline / border (lng, lat) */
-export const US_OUTLINE: ReadonlyArray<readonly [number, number]> = [
-  [-124.21, 48.38],
-  [-123.12, 46.17],
-  [-124.02, 43.61],
-  [-124.56, 42.0],
-  [-120.0, 42.0],
-  [-117.12, 32.53],
-  [-114.72, 32.72],
-  [-111.07, 31.33],
-  [-108.21, 31.33],
-  [-106.45, 31.76],
-  [-103.06, 29.37],
-  [-99.14, 26.41],
-  [-97.17, 25.84],
-  [-96.79, 28.31],
-  [-93.89, 29.76],
-  [-88.01, 30.22],
-  [-84.32, 29.93],
-  [-82.65, 27.43],
-  [-80.03, 25.13],
-  [-80.48, 28.43],
-  [-81.95, 30.74],
-  [-79.99, 32.01],
-  [-75.46, 35.2],
-  [-75.14, 39.45],
-  [-74.04, 40.56],
-  [-71.12, 41.49],
-  [-69.99, 43.66],
-  [-67.79, 44.82],
-  [-67.13, 47.46],
-  [-69.23, 47.06],
-  [-71.08, 45.3],
-  [-74.69, 45.01],
-  [-79.76, 42.27],
-  [-82.44, 41.68],
-  [-84.49, 46.45],
-  [-87.99, 47.95],
-  [-89.57, 48.01],
-  [-95.15, 49.0],
-  [-123.12, 49.0],
-  [-124.21, 48.38],
-];
+const EXCLUDED_STATES = new Set(["Alaska", "Hawaii", "Puerto Rico", "Guam"]);
+
+export type StateFeature = Feature<Geometry, { name: string }>;
+
+export const CONTINENTAL_STATES: StateFeature[] = (
+  statesData as FeatureCollection<Geometry, { name: string }>
+).features.filter((feature) => !EXCLUDED_STATES.has(feature.properties?.name ?? ""));
 
 export interface MapDimensions {
   width: number;
@@ -56,22 +24,46 @@ export interface MapDimensions {
   padding: number;
 }
 
-const DEFAULT_DIMS: MapDimensions = { width: 1000, height: 620, padding: 36 };
+const DEFAULT_DIMS: MapDimensions = { width: 1000, height: 620, padding: 28 };
+
+export interface UsMapContext {
+  projection: GeoProjection;
+  path: ReturnType<typeof geoPath>;
+  width: number;
+  height: number;
+}
+
+export function createUsMapContext(dims: MapDimensions = DEFAULT_DIMS): UsMapContext {
+  const projection = geoAlbersUsa();
+  const collection: FeatureCollection = {
+    type: "FeatureCollection",
+    features: CONTINENTAL_STATES,
+  };
+
+  projection.fitExtent(
+    [
+      [dims.padding, dims.padding],
+      [dims.width - dims.padding, dims.height - dims.padding],
+    ],
+    collection,
+  );
+
+  return {
+    projection,
+    path: geoPath(projection),
+    width: dims.width,
+    height: dims.height,
+  };
+}
 
 export function projectUS(
   lat: number,
   lng: number,
-  dims: MapDimensions = DEFAULT_DIMS,
-): { x: number; y: number } {
-  const innerW = dims.width - dims.padding * 2;
-  const innerH = dims.height - dims.padding * 2;
-  const x =
-    dims.padding +
-    ((lng - US_BOUNDS.minLng) / (US_BOUNDS.maxLng - US_BOUNDS.minLng)) * innerW;
-  const y =
-    dims.padding +
-    ((US_BOUNDS.maxLat - lat) / (US_BOUNDS.maxLat - US_BOUNDS.minLat)) * innerH;
-  return { x, y };
+  map: UsMapContext,
+): { x: number; y: number } | null {
+  const point = map.projection([lng, lat]);
+  if (!point) return null;
+  return { x: point[0], y: point[1] };
 }
 
 export function isInContinentalUS(lat: number, lng: number): boolean {
@@ -81,15 +73,6 @@ export function isInContinentalUS(lat: number, lng: number): boolean {
     lng >= US_BOUNDS.minLng &&
     lng <= US_BOUNDS.maxLng
   );
-}
-
-export function outlinePath(dims: MapDimensions = DEFAULT_DIMS): string {
-  const points = US_OUTLINE.map(([lng, lat]) => projectUS(lat, lng, dims));
-  if (!points.length) return "";
-  const [first, ...rest] = points;
-  return `M ${first.x.toFixed(1)} ${first.y.toFixed(1)} ${rest
-    .map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-    .join(" ")} Z`;
 }
 
 export interface GeoCluster {

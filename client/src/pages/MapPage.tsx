@@ -34,10 +34,10 @@ export function MapPage() {
       <PageHeader
         eyebrow="Capture telemetry"
         title="Origin map"
-        description="Pencil-sketch view of the lower 48 — each dot is where a field asset locked GPS on ingest. Cluster size reflects capture density."
+        description="Lower-48 origin map — each dot is where a field photo locked GPS on ingest. Cluster size reflects capture density."
         action={
           <div className="flex flex-wrap gap-1.5">
-            <TechStatusChip code="VIEW" label="sketch" tone="muted" />
+            <TechStatusChip code="VIEW" label="albers" tone="muted" />
             <TechStatusChip code="GPS" label={`${onMap} plotted`} tone="cyan" />
             <TechStatusChip code="LIVE" label="polling" tone="emerald" />
           </div>
@@ -86,7 +86,7 @@ export function MapPage() {
             <Satellite size={32} className="t-faint" />
             <p className="mt-4 max-w-md text-sm t-muted">
               No continental US GPS origins yet. Capture photos on-site — EXIF coordinates will
-              appear here as theme-matched plot points.
+              appear here on the origin map.
             </p>
           </div>
         ) : (
@@ -95,13 +95,13 @@ export function MapPage() {
 
         <div className="mt-5 border-t border-theme pt-4">
           <TechMetaRow>
-            <TechMeta label="Projection" value="lower-48" accent="muted" />
+            <TechMeta label="Projection" value="Albers USA" accent="muted" />
             <TechMeta label="Clusters" value={`${clusters.length} nodes`} accent="cyan" />
             <TechMeta label="Assets plotted" value={`${onMap}/${total}`} accent="emerald" />
-            <TechMeta label="Style" value="pencil·HUD" accent="violet" />
+            <TechMeta label="States" value="lower-48" accent="violet" />
           </TechMetaRow>
           <p className="mt-3 font-mono text-[10px] t-faint">
-            Alaska, Hawaii, and international captures are excluded from this sketch frame.
+            Alaska, Hawaii, and international captures are excluded from this map.
             Dots aggregate captures within ~11 km.
           </p>
         </div>
