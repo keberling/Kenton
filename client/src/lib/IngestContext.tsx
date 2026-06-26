@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import type { UploadQueueItem } from "../components/UploadPipeline";
+import { captureLocationOnGesture } from "./deviceLocation";
 import { prepareUploadFile, type PreparedUpload } from "./imagePrep";
 import { isImageFile } from "./imageTypes";
 import {
@@ -308,6 +309,7 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
       }
 
       setError(null);
+      captureLocationOnGesture();
       const items = images.map(createQueueItem);
 
       if (uploading) {

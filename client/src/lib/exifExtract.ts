@@ -9,10 +9,24 @@ const EXIF_PARSE_OPTIONS = {
   gps: true,
   tiff: true,
   xmp: true,
+  iptc: true,
   mergeOutput: true,
   reviveValues: true,
   sanitize: true,
 };
+
+const XMP_GPS_PICK = [
+  "latitude",
+  "longitude",
+  "GPSLatitude",
+  "GPSLongitude",
+  "GPSLatitudeRef",
+  "GPSLongitudeRef",
+  "LocationCreatedLatitude",
+  "LocationCreatedLongitude",
+  "LocationShownLatitude",
+  "LocationShownLongitude",
+] as const;
 
 const EXIF_PICK = [
   "latitude",
@@ -66,8 +80,16 @@ function dmsToDecimal(value: unknown, ref: unknown, axis: "lat" | "lng"): number
 function coordsFromParsed(parsed: Record<string, unknown> | null | undefined): ExtractedGps | null {
   if (!parsed) return null;
 
-  const directLat = parsed.latitude ?? parsed.Latitude;
-  const directLng = parsed.longitude ?? parsed.Longitude;
+  const directLat =
+    parsed.latitude ??
+    parsed.Latitude ??
+    parsed.LocationCreatedLatitude ??
+    parsed.LocationShownLatitude;
+  const directLng =
+    parsed.longitude ??
+    parsed.Longitude ??
+    parsed.LocationCreatedLongitude ??
+    parsed.LocationShownLongitude;
   if (isValidCoord(directLat, directLng)) {
     return { lat: directLat as number, lng: directLng as number };
   }
@@ -81,10 +103,20 @@ function coordsFromParsed(parsed: Record<string, unknown> | null | undefined): E
   return null;
 }
 
+async function asExifInput(file: File | Blob): Promise<File | Blob | ArrayBuffer> {
+  if (file instanceof ArrayBuffer) return file;
+  try {
+    return await file.arrayBuffer();
+  } catch {
+    return file;
+  }
+}
+
 export async function extractGpsFromImage(file: File | Blob): Promise<ExtractedGps | null> {
+  const input = await asExifInput(file);
   const attempts: Array<() => Promise<ExtractedGps | null>> = [
     async () => {
-      const gps = await exifr.gps(file).catch(() => null);
+      const gps = await exifr.gps(input).catch(() => null);
       if (gps && isValidCoord(gps.latitude, gps.longitude)) {
         return { lat: gps.latitude, lng: gps.longitude };
       }
@@ -92,15 +124,21 @@ export async function extractGpsFromImage(file: File | Blob): Promise<ExtractedG
     },
     async () => {
       const parsed = (await exifr
-        .parse(file, { ...EXIF_PARSE_OPTIONS, pick: [...EXIF_PICK] })
+        .parse(input, { ...EXIF_PARSE_OPTIONS, pick: [...EXIF_PICK, ...XMP_GPS_PICK] })
         .catch(() => null)) as Record<string, unknown> | null;
       return coordsFromParsed(parsed);
     },
     async () => {
-      const parsed = (await exifr.parse(file, EXIF_PARSE_OPTIONS).catch(() => null)) as Record<
+      const parsed = (await exifr.parse(input, EXIF_PARSE_OPTIONS).catch(() => null)) as Record<
         string,
         unknown
       > | null;
+      return coordsFromParsed(parsed);
+    },
+    async () => {
+      const parsed = (await exifr
+        .parse(input, { xmp: true, gps: true, pick: [...XMP_GPS_PICK] })
+        .catch(() => null)) as Record<string, unknown> | null;
       return coordsFromParsed(parsed);
     },
   ];
@@ -122,10 +160,11 @@ export interface ExtractedImageMeta {
 }
 
 export async function extractImageMeta(file: File): Promise<ExtractedImageMeta> {
+  const input = await asExifInput(file);
   const [gps, parsed] = await Promise.all([
     extractGpsFromImage(file),
     exifr
-      .parse(file, {
+      .parse(input, {
         ...EXIF_PARSE_OPTIONS,
         pick: [
           "DateTimeOriginal",

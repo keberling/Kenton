@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { ImagePlus, Loader2, RefreshCw, Upload, Zap } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { prefetchDeviceLocation } from "../lib/deviceLocation";
+import { useMemo, useRef, useState } from "react";
+import { MobileGpsNotice } from "../components/MobileGpsNotice";
+import { captureLocationOnGesture } from "../lib/deviceLocation";
 import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
@@ -34,13 +35,19 @@ export function UploadPage() {
   } = useIngest();
   const failedCount = queue.filter((item) => item.phase === "error").length;
 
-  useEffect(() => {
-    prefetchDeviceLocation();
-  }, []);
+  const openGalleryPicker = () => {
+    captureLocationOnGesture();
+    galleryInputRef.current?.click();
+  };
+
+  const openCameraPicker = () => {
+    captureLocationOnGesture();
+    cameraInputRef.current?.click();
+  };
 
   const handleFiles = (files: FileList | File[]) => {
     clearError();
-    prefetchDeviceLocation();
+    captureLocationOnGesture();
     void startIngest(files);
   };
 
@@ -85,6 +92,8 @@ export function UploadPage() {
       />
 
       {stats && <StatCards stats={stats} />}
+
+      <MobileGpsNotice />
 
       {config.enabled && config.required && !user && (
         <div className="panel window rounded-2xl border border-amber-400/20 px-5 py-4">
@@ -169,7 +178,7 @@ export function UploadPage() {
         <div className="relative mt-8 flex flex-wrap justify-center gap-3">
           <button
             type="button"
-            onClick={() => galleryInputRef.current?.click()}
+            onClick={openGalleryPicker}
             className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
           >
             <Upload size={16} />
@@ -177,8 +186,8 @@ export function UploadPage() {
           </button>
           <button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
-            className="btn-ghost hidden items-center gap-2 rounded-xl px-6 py-3 text-sm sm:inline-flex"
+            onClick={openCameraPicker}
+            className="btn-ghost inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
           >
             <Zap size={16} />
             Take photo

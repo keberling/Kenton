@@ -30,7 +30,7 @@ const SKIP_COMPRESS_BELOW = 450_000;
 async function applyDeviceGpsFallback(meta: ClientPhotoMeta): Promise<void> {
   if (meta.lat != null && meta.lng != null) return;
 
-  const fix = await getDeviceLocation();
+  const fix = await getDeviceLocation({ timeoutMs: 20_000, maximumAgeMs: 300_000 });
   if (!fix) return;
 
   meta.lat = fix.lat;
