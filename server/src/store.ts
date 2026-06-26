@@ -302,6 +302,35 @@ class Store {
     return rowToSite(site, 0);
   }
 
+  updateSite(
+    id: string,
+    input: {
+      name?: string;
+      address?: string;
+      lat?: number | null;
+      lng?: number | null;
+      geocodeSource?: string | null;
+    },
+  ): Site | null {
+    const existing = this.getSite(id);
+    if (!existing) return null;
+
+    const now = Date.now();
+    const name = (input.name ?? existing.name).trim().slice(0, 120) || existing.name;
+    const address = (input.address ?? existing.address).trim().slice(0, 240) || existing.address;
+    const lat = input.lat !== undefined ? input.lat : existing.lat;
+    const lng = input.lng !== undefined ? input.lng : existing.lng;
+    const geocodeSource = input.geocodeSource !== undefined ? input.geocodeSource : existing.geocodeSource;
+
+    db.prepare(`
+      UPDATE sites
+      SET name = ?, address = ?, lat = ?, lng = ?, geocode_source = ?, updated_at = ?
+      WHERE id = ?
+    `).run(name, address, lat, lng, geocodeSource, now, id);
+
+    return this.getSite(id);
+  }
+
   updateSiteFromAutotask(
     id: string,
     input: {
@@ -312,21 +341,7 @@ class Store {
       geocodeSource: string | null;
     },
   ): Site | null {
-    const now = Date.now();
-    db.prepare(`
-      UPDATE sites
-      SET name = ?, address = ?, lat = ?, lng = ?, geocode_source = ?, updated_at = ?
-      WHERE id = ?
-    `).run(
-      input.name.trim().slice(0, 120),
-      input.address.trim().slice(0, 240),
-      input.lat,
-      input.lng,
-      input.geocodeSource,
-      now,
-      id,
-    );
-    return this.getSite(id);
+    return this.updateSite(id, input);
   }
 
   updateSiteCoords(

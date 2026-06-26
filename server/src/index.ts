@@ -335,6 +335,74 @@ app.post("/api/sites", async (req, res) => {
   });
 });
 
+app.patch("/api/sites/:id", async (req, res) => {
+  const site = store.getSite(req.params.id);
+  if (!site) {
+    res.status(404).json({ error: "Site not found" });
+    return;
+  }
+
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : undefined;
+  const address = typeof req.body?.address === "string" ? req.body.address.trim() : undefined;
+
+  if (!name && !address) {
+    res.status(400).json({ error: "Provide a name or address to update" });
+    return;
+  }
+
+  if (name !== undefined && !name) {
+    res.status(400).json({ error: "Name cannot be empty" });
+    return;
+  }
+
+  if (address !== undefined && !address) {
+    res.status(400).json({ error: "Address cannot be empty" });
+    return;
+  }
+
+  let lat = site.lat;
+  let lng = site.lng;
+  let geocodeSource = site.geocodeSource;
+  let geocodeError: string | null = null;
+
+  if (address !== undefined && address !== site.address) {
+    const geocoded = await geocodeAddress(address);
+    if (geocoded.point) {
+      lat = geocoded.point.lat;
+      lng = geocoded.point.lng;
+      geocodeSource = geocoded.point.source;
+    } else {
+      lat = null;
+      lng = null;
+      geocodeSource = null;
+      geocodeError = geocoded.error ?? "Could not geocode address";
+    }
+  }
+
+  const updated = store.updateSite(site.id, {
+    name,
+    address,
+    lat,
+    lng,
+    geocodeSource,
+  });
+
+  if (!updated) {
+    res.status(404).json({ error: "Site not found" });
+    return;
+  }
+
+  const matched = lat != null && lng != null ? rematchAfterSiteChange(site.id) : 0;
+
+  res.json({
+    site: enrichSite(updated),
+    matchedPhotos: matched,
+    geocoded: lat != null && lng != null,
+    geocodeSource,
+    geocodeError,
+  });
+});
+
 app.post("/api/sites/:id/geocode", async (req, res) => {
   const site = store.getSite(req.params.id);
   if (!site) {

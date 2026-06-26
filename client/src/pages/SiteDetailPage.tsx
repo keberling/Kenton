@@ -4,7 +4,9 @@ import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
+import { SiteAddressEditor } from "../components/SiteAddressEditor";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
+import { TechStatusChip } from "../components/TechMeta";
 import { TechMeta, TechMetaRow } from "../components/TechMeta";
 import { useLiveData, useLivePoll } from "../lib/LiveDataContext";
 import { deletePhoto, getPhotos, getSite, regeocodeSite } from "../lib/api";
@@ -17,6 +19,7 @@ export function SiteDetailPage() {
   const [site, setSite] = useState<Site | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -91,7 +94,26 @@ export function SiteDetailPage() {
               <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
                 {site.name}
               </h2>
-              <p className="mt-2 max-w-xl text-white/50">{site.address}</p>
+              <div className="mt-2 max-w-xl">
+                {site.autotaskCompanyId != null && (
+                  <div className="mb-2">
+                    <TechStatusChip code="AT" label="Autotask" tone="violet" />
+                  </div>
+                )}
+                <SiteAddressEditor
+                  site={site}
+                  onUpdated={(nextSite, nextMessage) => {
+                    setSite(nextSite);
+                    setMessage(nextMessage);
+                    setError(null);
+                    invalidate();
+                  }}
+                  onError={(nextError) => {
+                    setError(nextError);
+                    setMessage(null);
+                  }}
+                />
+              </div>
               <div className="mt-4 flex flex-wrap items-center gap-4">
                 <span className="glass-badge inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-xs text-cyan-300">
                   <Images size={14} />
@@ -119,10 +141,12 @@ export function SiteDetailPage() {
                 try {
                   const result = await regeocodeSite(site.id);
                   setMessage(`Fix updated via ${result.geocodeSource}. ${result.matchedPhotos} assets matched.`);
+                  setError(null);
                   invalidate();
                   load();
                 } catch {
-                  setMessage("Geocode failed.");
+                  setError("Geocode failed.");
+                  setMessage(null);
                 }
               }}
               className="btn-ghost inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
@@ -132,6 +156,7 @@ export function SiteDetailPage() {
             </button>
           </div>
           {message && <p className="mt-4 font-mono text-sm text-emerald-400">{message}</p>}
+          {error && <p className="mt-4 font-mono text-sm text-rose-400">{error}</p>}
 
           <button
             onClick={() => setShowDetails((open) => !open)}
