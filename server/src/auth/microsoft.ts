@@ -10,6 +10,7 @@ import {
   azureClientId,
   azureIssuer,
   azureTenantId,
+  graphAppAuthEnabled,
 } from "./config.js";
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
@@ -56,13 +57,23 @@ export function authUserFromPayload(payload: JWTPayload): AuthUser | null {
 export async function verifyMicrosoftAccessToken(token: string): Promise<AuthUser | null> {
   if (!azureAuthEnabled()) return null;
 
+  const tenantId = azureTenantId();
+  const issuers = [
+    azureIssuer(),
+    `https://login.microsoftonline.com/${tenantId}/`,
+    `https://sts.windows.net/${tenantId}/`,
+  ];
+
   try {
     const { payload } = await jwtVerify(token, getJwks(), {
-      issuer: azureIssuer(),
+      issuer: issuers,
       audience: azureAudiences(),
     });
     return authUserFromPayload(payload);
-  } catch {
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Microsoft token verification failed:", err);
+    }
     return null;
   }
 }
@@ -79,6 +90,20 @@ export function publicAuthConfig() {
     tenantId: enabled ? azureTenantId() : null,
     apiScope: enabled ? azureApiScope() : null,
     graphScopes: enabled ? ["User.Read"] : [],
+    backupEnabled: backupEnabled(),
+    graphSecretConfigured: graphAppAuthEnabled(),
+  };
+}
+
+export function publicAuthStatus() {
+  const enabled = azureAuthEnabled();
+  return {
+    azureConfigured: enabled,
+    clientId: enabled ? azureClientId() : null,
+    tenantId: enabled ? azureTenantId() : null,
+    authRequired: authRequired(),
+    uploadAuthRequired: authUploadRequired(),
+    graphSecretConfigured: graphAppAuthEnabled(),
     backupEnabled: backupEnabled(),
   };
 }

@@ -29,7 +29,7 @@ import {
 } from "./matcher.js";
 import { protectApiRoutes } from "./auth/apiGuard.js";
 import { attachAuth, mergeProfilePatch } from "./auth/middleware.js";
-import { publicAuthConfig } from "./auth/microsoft.js";
+import { publicAuthConfig, publicAuthStatus } from "./auth/microsoft.js";
 import { enrichSite } from "./siteInsights.js";
 import { store } from "./store.js";
 import type { AuthUser } from "./types.js";
@@ -99,6 +99,10 @@ const upload = multer({
 
 app.get("/api/auth/config", (_req, res) => {
   res.json(publicAuthConfig());
+});
+
+app.get("/api/auth/status", (_req, res) => {
+  res.json(publicAuthStatus());
 });
 
 app.get("/api/auth/me", (req, res) => {

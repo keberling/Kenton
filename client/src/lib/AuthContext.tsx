@@ -64,12 +64,12 @@ async function fetchGraphProfile(graphToken: string): Promise<GraphProfile | nul
   return res.json() as Promise<GraphProfile>;
 }
 
-async function postProfileSync(patch: GraphProfile): Promise<User | null> {
+async function postProfileSync(patch: GraphProfile, accessToken: string): Promise<User | null> {
   const res = await fetch("/api/auth/sync", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(await authHeaders()),
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
       displayName: patch.displayName,
@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       const profile = await fetchGraphProfile(graphResult.accessToken);
       if (profile) {
-        const synced = await postProfileSync(profile);
+        const synced = await postProfileSync(profile, graphResult.accessToken);
         if (synced) setUser(synced);
         return;
       }
@@ -195,7 +195,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (instance && activeAccount(instance)) {
-        await syncProfile();
+        const account = activeAccount(instance);
+        if (account && nextConfig.enabled) {
+          try {
+            const graphResult = await instance.acquireTokenSilent({
+              ...graphRequest(),
+              account,
+            });
+            const profile = await fetchGraphProfile(graphResult.accessToken);
+            if (profile) {
+              const synced = await postProfileSync(profile, graphResult.accessToken);
+              if (synced && !cancelled) setUser(synced);
+            } else if (!cancelled) {
+              const me = await fetchMe();
+              if (me) setUser(me);
+            }
+          } catch {
+            if (!cancelled) {
+              const me = await fetchMe();
+              if (me) setUser(me);
+            }
+          }
+        }
       }
 
       if (!cancelled) setReady(true);
@@ -205,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       setTokenProvider(null);
     };
-  }, [syncProfile]);
+  }, []);
 
   const value = useMemo(
     () => ({
