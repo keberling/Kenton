@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { ImagePlus, Loader2, RefreshCw, Upload, Zap } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { FolderOpen, ImagePlus, Loader2, RefreshCw, Share2, Upload, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MobileGpsNotice } from "../components/MobileGpsNotice";
-import { captureLocationOnGesture } from "../lib/deviceLocation";
 import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
@@ -12,6 +12,9 @@ import { useAuth } from "../lib/AuthContext";
 import { useIngest } from "../lib/IngestContext";
 import { useLiveData } from "../lib/LiveDataContext";
 import { formatBytes } from "../lib/format";
+import { canOpenOriginalFiles, pickOriginalImageFiles } from "../lib/openFiles";
+import { isLikelyMobileBrowser } from "../lib/pwa";
+import { drainShareInbox } from "../lib/shareInbox";
 
 /** Explicit image types — avoids mobile browsers treating `image/*` as camera capture. */
 const GALLERY_ACCEPT =
@@ -21,6 +24,8 @@ export function UploadPage() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [openingFiles, setOpeningFiles] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { stats } = useLiveData();
   const { config, user, login, signingIn } = useAuth();
   const {
@@ -34,26 +39,39 @@ export function UploadPage() {
     retryFailed,
   } = useIngest();
   const failedCount = queue.filter((item) => item.phase === "error").length;
+  const mobile = isLikelyMobileBrowser();
+  const supportsOriginalPicker = canOpenOriginalFiles();
 
-  const openGalleryPicker = () => {
-    captureLocationOnGesture();
-    galleryInputRef.current?.click();
-  };
-
-  const openCameraPicker = () => {
-    captureLocationOnGesture();
-    cameraInputRef.current?.click();
-  };
-
-  const handleFiles = (files: FileList | File[]) => {
+  const ingestIncomingFiles = (files: FileList | File[]) => {
     clearError();
-    captureLocationOnGesture();
     void startIngest(files);
   };
 
+  useEffect(() => {
+    if (!searchParams.get("share")) return;
+    void drainShareInbox().then((files) => {
+      if (files.length) ingestIncomingFiles(files);
+    });
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files?.length) handleFiles(event.target.files);
+    if (event.target.files?.length) ingestIncomingFiles(event.target.files);
     event.target.value = "";
+  };
+
+  const handleOpenOriginalFiles = async () => {
+    clearError();
+    setOpeningFiles(true);
+    try {
+      const files = await pickOriginalImageFiles();
+      if (files.length) ingestIncomingFiles(files);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      console.error(err);
+    } finally {
+      setOpeningFiles(false);
+    }
   };
 
   const totalQueuedBytes = queue.reduce((s, i) => s + i.file.size, 0);
@@ -93,7 +111,7 @@ export function UploadPage() {
 
       {stats && <StatCards stats={stats} />}
 
-      <MobileGpsNotice />
+      <MobileGpsNotice canOpenOriginals={supportsOriginalPicker} />
 
       {config.enabled && config.required && !user && (
         <div className="panel window rounded-2xl border border-amber-400/20 px-5 py-4">
@@ -127,7 +145,7 @@ export function UploadPage() {
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
-          if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+          if (e.dataTransfer.files.length) ingestIncomingFiles(e.dataTransfer.files);
         }}
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-400/5 via-transparent to-violet-500/5" />
@@ -176,23 +194,52 @@ export function UploadPage() {
         </div>
 
         <div className="relative mt-8 flex flex-wrap justify-center gap-3">
+          {supportsOriginalPicker && (
+            <button
+              type="button"
+              onClick={() => void handleOpenOriginalFiles()}
+              disabled={openingFiles}
+              className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
+            >
+              {openingFiles ? <Loader2 size={16} className="animate-spin" /> : <FolderOpen size={16} />}
+              Open original file
+            </button>
+          )}
+          {mobile ? (
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className={`${supportsOriginalPicker ? "btn-ghost" : "btn-primary"} inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm`}
+            >
+              <Upload size={16} />
+              Photo library
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className={`${supportsOriginalPicker ? "btn-ghost" : "btn-primary"} inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm`}
+            >
+              <Upload size={16} />
+              {uploading ? "Add to queue" : "Photo library"}
+            </button>
+          )}
           <button
             type="button"
-            onClick={openGalleryPicker}
-            className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
-          >
-            <Upload size={16} />
-            {uploading ? "Add to queue" : "Photo library"}
-          </button>
-          <button
-            type="button"
-            onClick={openCameraPicker}
+            onClick={() => cameraInputRef.current?.click()}
             className="btn-ghost inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm"
           >
             <Zap size={16} />
             Take photo
           </button>
         </div>
+
+        {mobile && (
+          <p className="relative mx-auto mt-4 max-w-md text-xs leading-relaxed text-white/35">
+            <Share2 size={12} className="mr-1 inline text-emerald-300/80" />
+            Best GPS path: add Kenton to your home screen, then share photos from Google Photos into Kenton.
+          </p>
+        )}
 
         {showPipeline && !uploading && (
           <p className="relative mt-4 font-mono text-[10px] text-white/30">

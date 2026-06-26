@@ -8,9 +8,10 @@ import {
   useState,
 } from "react";
 import type { UploadQueueItem } from "../components/UploadPipeline";
-import { captureLocationOnGesture } from "./deviceLocation";
 import { prepareUploadFile, type PreparedUpload } from "./imagePrep";
 import { isImageFile } from "./imageTypes";
+import { registerLaunchQueueConsumer } from "./pwa";
+import { drainShareInbox, registerShareTargetListener } from "./shareInbox";
 import {
   deletePersistedItem,
   loadPersistedItems,
@@ -309,7 +310,6 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
       }
 
       setError(null);
-      captureLocationOnGesture();
       const items = images.map(createQueueItem);
 
       if (uploading) {
@@ -342,6 +342,22 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
     },
     [batchId, config.enabled, config.required, ensureWorker, uploading, user],
   );
+
+  useEffect(() => {
+    const ingestFiles = (files: File[]) => {
+      if (!files.length) return;
+      void startIngest(files);
+    };
+
+    void drainShareInbox().then(ingestFiles);
+    const removeLaunchQueue = registerLaunchQueueConsumer(ingestFiles);
+    const removeShareListener = registerShareTargetListener(ingestFiles);
+
+    return () => {
+      removeLaunchQueue();
+      removeShareListener();
+    };
+  }, [startIngest]);
 
   useEffect(() => {
     if (restored) return;

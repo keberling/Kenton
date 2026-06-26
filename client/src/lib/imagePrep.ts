@@ -1,8 +1,7 @@
-import { getDeviceLocation } from "./deviceLocation";
 import { extractImageMeta } from "./exifExtract";
 import { isImageFile, normalizeImageMime } from "./imageTypes";
 
-export type GpsSource = "exif" | "device" | null;
+export type GpsSource = "exif" | null;
 
 export interface ClientPhotoMeta {
   lat: number | null;
@@ -12,7 +11,6 @@ export interface ClientPhotoMeta {
   height: number | null;
   originalName: string;
   gpsSource?: GpsSource;
-  gpsAccuracyMeters?: number | null;
 }
 
 export interface PreparedUpload {
@@ -27,43 +25,24 @@ const MAX_EDGE = 2400;
 const JPEG_QUALITY = 0.82;
 const SKIP_COMPRESS_BELOW = 450_000;
 
-async function applyDeviceGpsFallback(meta: ClientPhotoMeta): Promise<void> {
-  if (meta.lat != null && meta.lng != null) return;
-
-  const fix = await getDeviceLocation({ timeoutMs: 20_000, maximumAgeMs: 300_000 });
-  if (!fix) return;
-
-  meta.lat = fix.lat;
-  meta.lng = fix.lng;
-  meta.gpsSource = "device";
-  meta.gpsAccuracyMeters = fix.accuracyMeters;
-}
-
 async function extractMeta(file: File): Promise<ClientPhotoMeta> {
   try {
     const extracted = await extractImageMeta(file);
-    const meta: ClientPhotoMeta = {
+    return {
       ...extracted,
       originalName: file.name,
       gpsSource: extracted.lat != null && extracted.lng != null ? "exif" : null,
     };
-
-    if (meta.lat == null || meta.lng == null) {
-      await applyDeviceGpsFallback(meta);
-    }
-
-    return meta;
   } catch {
-    const meta: ClientPhotoMeta = {
+    return {
       lat: null,
       lng: null,
       takenAt: null,
       width: null,
       height: null,
       originalName: file.name,
+      gpsSource: null,
     };
-    await applyDeviceGpsFallback(meta);
-    return meta;
   }
 }
 
@@ -116,7 +95,7 @@ export async function prepareUploadFile(
 ): Promise<PreparedUpload> {
   onProgress?.("EXIF::SCAN");
   const meta = await extractMeta(file);
-  onProgress?.(meta.gpsSource === "device" ? "GPS::DEVICE" : meta.gpsSource === "exif" ? "GPS::EXIF" : "GPS::NONE");
+  onProgress?.(meta.gpsSource === "exif" ? "GPS::EXIF" : "GPS::NONE");
   onProgress?.("IMG::OPTIMIZE");
   const compressed = await compressRaster(file, meta);
   const uploadFile = compressed ?? file;
