@@ -1,20 +1,21 @@
-import { Activity, Cpu, Globe2, Images, MapPinned, Radio, Upload } from "lucide-react";
+import { Activity, Cpu, Globe2, HardDrive, Images, MapPinned, Radio, Upload } from "lucide-react";
 import { MatchNavBadge } from "./MatchNavBadge";
 import { RescanMatchesButton } from "./RescanMatchesButton";
 import { NavLink, Outlet } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
 import { AuthPanel } from "./AuthPanel";
-import { IngestHud, IngestNavBadge } from "./IngestHud";
+import { IngestHud } from "./IngestHud";
 import { ThemePicker } from "./ThemePicker";
 import { useLiveData } from "../lib/LiveDataContext";
 import { useTheme } from "../lib/ThemeContext";
 
 const links = [
-  { to: "/", label: "Ingest", icon: Upload, code: "ING" },
-  { to: "/match", label: "Match", icon: Radio, code: "MTCH" },
-  { to: "/sites", label: "Deployments", icon: MapPinned, code: "DEP" },
-  { to: "/photos", label: "Archive", icon: Images, code: "ARC" },
-  { to: "/map", label: "Origins", icon: Globe2, code: "MAP" },
+  { to: "/", label: "Upload", icon: Upload, code: "UPL", external: true },
+  { to: "match", label: "Match", icon: Radio, code: "MTCH" },
+  { to: "sites", label: "Deployments", icon: MapPinned, code: "DEP" },
+  { to: "photos", label: "Archive", icon: Images, code: "ARC" },
+  { to: "map", label: "Origins", icon: Globe2, code: "MAP" },
+  { to: "backups", label: "Backups", icon: HardDrive, code: "BKP" },
 ];
 
 function formatSyncAge(ms: number | null): string {
@@ -60,36 +61,45 @@ export function Layout() {
           </div>
 
           <nav className="flex-1 space-y-1.5 p-3">
-            {links.map(({ to, label, icon: Icon, code }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === "/"}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-xl px-3 py-3 transition ${
-                    isActive
-                      ? "neu-inset t-accent"
-                      : "t-subtle hover:t-fg"
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon size={18} className="shrink-0" />
-                    <span className="font-medium">{label}</span>
-                    {to === "/" ? (
-                      <IngestNavBadge active={isActive} />
-                    ) : to === "/match" ? (
-                      <MatchNavBadge active={isActive} fallbackCode={code} />
-                    ) : (
-                      <span className="font-mono ml-auto text-[10px] tracking-wider opacity-60 group-hover:opacity-90">
-                        {code}
-                      </span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            ))}
+            {links.map(({ to, label, icon: Icon, code, external }) =>
+              external ? (
+                <a
+                  key={to}
+                  href={to}
+                  className="group flex items-center gap-3 rounded-xl px-3 py-3 transition t-subtle hover:t-fg"
+                >
+                  <Icon size={18} className="shrink-0" />
+                  <span className="font-medium">{label}</span>
+                  <span className="font-mono ml-auto text-[10px] tracking-wider opacity-60 group-hover:opacity-90">
+                    {code}
+                  </span>
+                </a>
+              ) : (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 rounded-xl px-3 py-3 transition ${
+                      isActive ? "neu-inset t-accent" : "t-subtle hover:t-fg"
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon size={18} className="shrink-0" />
+                      <span className="font-medium">{label}</span>
+                      {to === "match" ? (
+                        <MatchNavBadge active={isActive} fallbackCode={code} />
+                      ) : (
+                        <span className="font-mono ml-auto text-[10px] tracking-wider opacity-60 group-hover:opacity-90">
+                          {code}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ),
+            )}
           </nav>
 
           {stats && (
@@ -157,28 +167,37 @@ export function Layout() {
         </div>
       </div>
 
-      <nav className="panel window safe-bottom fixed inset-x-2 bottom-3 z-30 grid grid-cols-5 gap-0.5 rounded-2xl p-1.5 lg:hidden">
-        {links.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) =>
-              `relative flex min-h-14 flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition ${
-                isActive ? "neu-inset t-accent" : "t-subtle"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={18} />
-                <span className="mt-1 leading-tight">{label}</span>
-                {to === "/" && <IngestNavBadge active={isActive} compact />}
-                {to === "/match" && <MatchNavBadge active={isActive} compact />}
-              </>
-            )}
-          </NavLink>
-        ))}
+      <nav className="panel window safe-bottom fixed inset-x-2 bottom-3 z-30 grid grid-cols-6 gap-0.5 rounded-2xl p-1.5 lg:hidden">
+        {links.map(({ to, label, icon: Icon, external }) =>
+          external ? (
+            <a
+              key={to}
+              href={to}
+              className="relative flex min-h-14 flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition t-subtle"
+            >
+              <Icon size={18} />
+              <span className="mt-1 leading-tight">{label}</span>
+            </a>
+          ) : (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `relative flex min-h-14 flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition ${
+                  isActive ? "neu-inset t-accent" : "t-subtle"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={18} />
+                  <span className="mt-1 leading-tight">{label}</span>
+                  {to === "match" && <MatchNavBadge active={isActive} compact />}
+                </>
+              )}
+            </NavLink>
+          ),
+        )}
       </nav>
 
       <IngestHud />

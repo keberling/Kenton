@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { authRequired, azureAuthEnabled } from "./config.js";
+import { authRequired, authUploadRequired, authViewRequired, azureAuthEnabled } from "./config.js";
 import { verifyMicrosoftAccessToken } from "./microsoft.js";
 import { store } from "../store.js";
 import type { AuthUser, User } from "../types.js";
@@ -31,7 +31,7 @@ export async function attachAuth(req: Request, _res: Response, next: NextFunctio
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!azureAuthEnabled() || !authRequired()) {
+  if (!azureAuthEnabled() || !authViewRequired()) {
     next();
     return;
   }
@@ -43,7 +43,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export function requireAuthForUpload(req: Request, res: Response, next: NextFunction) {
-  if (!azureAuthEnabled() || !authRequired()) {
+  if (!azureAuthEnabled() || !authUploadRequired()) {
     next();
     return;
   }

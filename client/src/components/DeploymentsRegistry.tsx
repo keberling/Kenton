@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, ExternalLink, Images, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { APP_BASE } from "../lib/routes";
 import { SiteGeocodeInfo } from "./SiteGeocodeInfo";
 import { TechStatusChip } from "./TechMeta";
 import { shortId } from "../lib/format";
@@ -202,7 +203,7 @@ export function DeploymentsRegistry({ sites, onDelete, onRegeocode }: Deployment
 
                         <button
                           type="button"
-                          onClick={() => navigate(`/sites/${site.id}`)}
+                          onClick={() => navigate(`${APP_BASE}/sites/${site.id}`)}
                           className="flex min-w-0 flex-1 items-center text-left"
                         >
                           <span className="flex w-20 shrink-0 items-center gap-1.5 px-3">
@@ -244,7 +245,7 @@ export function DeploymentsRegistry({ sites, onDelete, onRegeocode }: Deployment
                         <div className="flex w-28 shrink-0 items-center justify-end gap-0.5 px-3 py-2">
                           <button
                             type="button"
-                            onClick={() => navigate(`/sites/${site.id}`)}
+                            onClick={() => navigate(`${APP_BASE}/sites/${site.id}`)}
                             className="btn-ghost rounded-lg p-2 text-white/30 hover:text-cyan-300"
                             aria-label="Open gallery"
                             title="Open gallery"

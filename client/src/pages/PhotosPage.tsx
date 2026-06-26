@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Radio } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
+import { APP_BASE } from "../lib/routes";
 import { PageHeader } from "../components/PageHeader";
 import { RescanMatchesButton } from "../components/RescanMatchesButton";
 import { PhotoGrid } from "../components/PhotoGrid";
@@ -57,7 +58,7 @@ export function PhotosPage() {
             />
             {(stats?.unassignedPhotos ?? 0) > 0 && (
               <Link
-                to="/match"
+                to={`${APP_BASE}/match`}
                 className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
               >
                 <Radio size={14} />
@@ -71,7 +72,7 @@ export function PhotosPage() {
 
       {(stats?.unassignedPhotos ?? 0) > 0 && (
         <Link
-          to="/match"
+          to={`${APP_BASE}/match`}
           className="panel window flex items-center justify-between gap-4 rounded-2xl px-5 py-4 transition hover:ring-1 hover:ring-amber-400/25"
         >
           <div>

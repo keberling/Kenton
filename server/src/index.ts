@@ -27,7 +27,8 @@ import {
   rescanAllPhotoMatches,
   syncExistingPhotoMatches,
 } from "./matcher.js";
-import { attachAuth, mergeProfilePatch, requireAuthForUpload } from "./auth/middleware.js";
+import { protectApiRoutes } from "./auth/apiGuard.js";
+import { attachAuth, mergeProfilePatch } from "./auth/middleware.js";
 import { publicAuthConfig } from "./auth/microsoft.js";
 import { enrichSite } from "./siteInsights.js";
 import { store } from "./store.js";
@@ -40,6 +41,8 @@ import {
   writeUploadChunk,
   type ClientPhotoMeta,
 } from "./uploadSessions.js";
+import { backupPublicStatus, ensureBackupDownload, runBackup, syncBackupManifestFromSharePoint } from "./backup/service.js";
+import { startBackupScheduler } from "./backup/scheduler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -55,6 +58,7 @@ const httpServer = createServer(app);
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
 app.use(attachAuth);
+app.use(protectApiRoutes);
 app.use("/uploads", express.static(uploadDir));
 
 const storage = multer.diskStorage({
@@ -494,7 +498,7 @@ function parseClientMeta(raw: unknown): ClientPhotoMeta | null {
   };
 }
 
-app.post("/api/photos/upload/session", requireAuthForUpload, express.json(), (req, res) => {
+app.post("/api/photos/upload/session", express.json(), (req, res) => {
   const originalName = typeof req.body?.originalName === "string" ? req.body.originalName : "";
   const mimeType = typeof req.body?.mimeType === "string" ? req.body.mimeType : "image/jpeg";
   const totalSize = Number(req.body?.totalSize);
@@ -525,7 +529,6 @@ app.post("/api/photos/upload/session", requireAuthForUpload, express.json(), (re
 
 app.put(
   "/api/photos/upload/session/:id/chunk/:index",
-  requireAuthForUpload,
   express.raw({ type: "*/*", limit: "512kb" }),
   (req, res) => {
     const sessionId = String(req.params.id);
@@ -560,7 +563,7 @@ app.put(
   },
 );
 
-app.post("/api/photos/upload/session/:id/complete", requireAuthForUpload, async (req, res) => {
+app.post("/api/photos/upload/session/:id/complete", async (req, res) => {
   const assembled = completeUploadSession(String(req.params.id));
   if (!assembled) {
     res.status(400).json({ error: "Upload incomplete or session not found" });
@@ -583,7 +586,7 @@ app.post("/api/photos/upload/session/:id/complete", requireAuthForUpload, async 
   }
 });
 
-app.post("/api/photos/upload", requireAuthForUpload, upload.array("photos", 20), async (req, res) => {
+app.post("/api/photos/upload", upload.array("photos", 20), async (req, res) => {
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) {
     res.status(400).json({ error: "No photos uploaded" });
@@ -666,8 +669,36 @@ app.delete("/api/photos/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/backups", async (_req, res) => {
+  try {
+    const backups = await syncBackupManifestFromSharePoint();
+    res.json({ backups, status: backupPublicStatus() });
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : "Could not list backups" });
+  }
+});
+
+app.post("/api/backups/run", async (_req, res) => {
+  try {
+    const backup = await runBackup("manual");
+    res.status(201).json({ backup });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Backup failed" });
+  }
+});
+
+app.get("/api/backups/:id/download", async (req, res) => {
+  try {
+    const filePath = await ensureBackupDownload(req.params.id);
+    res.download(filePath);
+  } catch (err) {
+    res.status(404).json({ error: err instanceof Error ? err.message : "Backup not found" });
+  }
+});
+
 fs.mkdirSync(uploadDir, { recursive: true });
 cleanupStaleUploadSessions();
+startBackupScheduler();
 
 if (isProduction && fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));

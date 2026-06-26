@@ -304,7 +304,8 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (config.enabled && config.required && !user) {
+      const uploadRequired = config.uploadRequired ?? false;
+      if (config.enabled && uploadRequired && !user) {
         setError("Sign in with Microsoft to upload photos.");
         return;
       }

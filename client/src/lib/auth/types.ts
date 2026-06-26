@@ -1,6 +1,9 @@
 export interface AuthConfig {
   enabled: boolean;
   required: boolean;
+  viewRequired?: boolean;
+  uploadRequired?: boolean;
+  backupEnabled?: boolean;
   clientId: string | null;
   tenantId: string | null;
   apiScope: string | null;

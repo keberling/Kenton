@@ -2,10 +2,29 @@ export function azureAuthEnabled(): boolean {
   return Boolean(process.env.AZURE_CLIENT_ID?.trim() && process.env.AZURE_TENANT_ID?.trim());
 }
 
-/** When Azure is configured, uploads require sign-in unless explicitly disabled. */
-export function authRequired(): boolean {
+/** When Azure is configured, app views/admin APIs require sign-in unless disabled. */
+export function authViewRequired(): boolean {
   if (!azureAuthEnabled()) return false;
   return process.env.AUTH_REQUIRED !== "false";
+}
+
+/** @deprecated alias for authViewRequired */
+export function authRequired(): boolean {
+  return authViewRequired();
+}
+
+/** Uploads are public by default; set AUTH_UPLOAD_REQUIRED=true to require sign-in. */
+export function authUploadRequired(): boolean {
+  if (!azureAuthEnabled()) return false;
+  return process.env.AUTH_UPLOAD_REQUIRED === "true";
+}
+
+export function azureClientSecret(): string {
+  return process.env.AZURE_CLIENT_SECRET?.trim() ?? "";
+}
+
+export function graphAppAuthEnabled(): boolean {
+  return azureAuthEnabled() && Boolean(azureClientSecret());
 }
 
 export function azureClientId(): string {

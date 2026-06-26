@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ChevronDown, Images, RefreshCw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { APP_BASE } from "../lib/routes";
 import { PhotoGrid } from "../components/PhotoGrid";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { SiteAddressEditor } from "../components/SiteAddressEditor";
@@ -64,7 +65,7 @@ export function SiteDetailPage() {
   return (
     <div className="space-y-8">
       <Link
-        to="/sites"
+        to={`${APP_BASE}/sites`}
         className="inline-flex items-center gap-2 font-mono text-xs text-white/40 transition hover:text-cyan-300"
       >
         <ArrowLeft size={14} />

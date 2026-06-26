@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Loader2, MapPinned, Plus, Satellite } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { APP_BASE } from "../lib/routes";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { TechMeta, TechMetaRow, TechStatusChip } from "./TechMeta";
 import { createSite, reverseGeocodeAddress } from "../lib/api";
@@ -119,7 +120,7 @@ export function DeploymentRecommendationPanel({
       invalidate();
       onCreated?.();
       if (result.matchedPhotos > 0) {
-        window.setTimeout(() => navigate(`/sites/${result.site.id}`), 1200);
+        window.setTimeout(() => navigate(`${APP_BASE}/sites/${result.site.id}`), 1200);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create deployment");

@@ -1,7 +1,9 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { AuthUser } from "../types.js";
+import { backupEnabled } from "../backup/config.js";
 import {
   authRequired,
+  authUploadRequired,
   azureApiScope,
   azureAudiences,
   azureAuthEnabled,
@@ -67,12 +69,16 @@ export async function verifyMicrosoftAccessToken(token: string): Promise<AuthUse
 
 export function publicAuthConfig() {
   const enabled = azureAuthEnabled();
+  const viewRequired = authRequired();
   return {
     enabled,
-    required: authRequired(),
+    required: viewRequired,
+    viewRequired,
+    uploadRequired: authUploadRequired(),
     clientId: enabled ? azureClientId() : null,
     tenantId: enabled ? azureTenantId() : null,
     apiScope: enabled ? azureApiScope() : null,
     graphScopes: enabled ? ["User.Read"] : [],
+    backupEnabled: backupEnabled(),
   };
 }

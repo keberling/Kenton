@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { getStats } from "./api";
+import { useAuth } from "./AuthContext";
 import type { Stats } from "../types";
 
 export const LIVE_POLL_MS = 4000;
@@ -24,6 +25,7 @@ interface LiveDataContextValue {
 const LiveDataContext = createContext<LiveDataContextValue | null>(null);
 
 export function LiveDataProvider({ children }: { children: React.ReactNode }) {
+  const { config, user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -34,7 +36,10 @@ export function LiveDataProvider({ children }: { children: React.ReactNode }) {
     setDataVersion((v) => v + 1);
   }, []);
 
+  const canPollStats = !config.enabled || !config.viewRequired || Boolean(user);
+
   const refreshStats = useCallback(async () => {
+    if (!canPollStats) return;
     setSyncing(true);
     try {
       const next = await getStats();
@@ -45,7 +50,7 @@ export function LiveDataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSyncing(false);
     }
-  }, []);
+  }, [canPollStats]);
 
   useEffect(() => {
     void refreshStats();

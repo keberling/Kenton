@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { CheckCircle2, CheckSquare, Play, Satellite, Square, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { APP_BASE } from "../lib/routes";
 import { DeploymentRecommendationPanel } from "../components/DeploymentRecommendationPanel";
 import { RescanMatchesButton } from "../components/RescanMatchesButton";
 import { PageHeader } from "../components/PageHeader";
@@ -313,7 +314,7 @@ export function MatchQueuePage() {
             Every asset is routed to a deployment. New uploads without a match will appear here
             automatically.
           </p>
-          <Link to="/photos" className="btn-ghost mt-6 rounded-xl px-5 py-2.5 text-sm">
+          <Link to={`${APP_BASE}/photos`} className="btn-ghost mt-6 rounded-xl px-5 py-2.5 text-sm">
             Browse archive
           </Link>
         </div>

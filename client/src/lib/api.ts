@@ -1,4 +1,14 @@
 import type { AddressSuggestion, DeploymentRecommendation, Photo, Site, Stats } from "../types";
+import { authHeaders } from "./auth/token";
+
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  const auth = await authHeaders();
+  const headers = new Headers(init?.headers);
+  for (const [key, value] of Object.entries(auth)) {
+    headers.set(key, value);
+  }
+  return fetch(url, { ...init, headers });
+}
 
 async function parse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -10,38 +20,38 @@ async function parse<T>(res: Response): Promise<T> {
 
 export function searchAddresses(query: string, limit = 6) {
   const params = new URLSearchParams({ q: query, limit: String(limit) });
-  return fetch(`/api/addresses/search?${params}`).then((r) =>
+  return apiFetch(`/api/addresses/search?${params}`).then((r) =>
     parse<{ suggestions: AddressSuggestion[] }>(r),
   );
 }
 
 export function reverseGeocodeAddress(lat: number, lng: number) {
   const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
-  return fetch(`/api/addresses/reverse?${params}`).then((r) =>
+  return apiFetch(`/api/addresses/reverse?${params}`).then((r) =>
     parse<{ suggestion: AddressSuggestion }>(r),
   );
 }
 
 export function getDeploymentRecommendations() {
-  return fetch("/api/recommendations/deployments").then((r) =>
+  return apiFetch("/api/recommendations/deployments").then((r) =>
     parse<{ recommendations: DeploymentRecommendation[] }>(r),
   );
 }
 
 export function getStats() {
-  return fetch("/api/stats").then((r) => parse<Stats>(r));
+  return apiFetch("/api/stats").then((r) => parse<Stats>(r));
 }
 
 export function getSites() {
-  return fetch("/api/sites").then((r) => parse<Site[]>(r));
+  return apiFetch("/api/sites").then((r) => parse<Site[]>(r));
 }
 
 export function getSite(id: string) {
-  return fetch(`/api/sites/${id}`).then((r) => parse<Site>(r));
+  return apiFetch(`/api/sites/${id}`).then((r) => parse<Site>(r));
 }
 
 export function createSite(input: { name: string; address: string; radiusMeters?: number }) {
-  return fetch("/api/sites", {
+  return apiFetch("/api/sites", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -55,7 +65,7 @@ export function createSite(input: { name: string; address: string; radiusMeters?
 }
 
 export function updateSite(id: string, input: { name?: string; address?: string }) {
-  return fetch(`/api/sites/${id}`, {
+  return apiFetch(`/api/sites/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -71,17 +81,17 @@ export function updateSite(id: string, input: { name?: string; address?: string 
 }
 
 export function regeocodeSite(id: string) {
-  return fetch(`/api/sites/${id}/geocode`, { method: "POST" }).then((r) =>
+  return apiFetch(`/api/sites/${id}/geocode`, { method: "POST" }).then((r) =>
     parse<{ site: Site; matchedPhotos: number; geocodeSource: string }>(r),
   );
 }
 
 export function deleteSite(id: string) {
-  return fetch(`/api/sites/${id}`, { method: "DELETE" }).then((r) => parse<{ ok: boolean }>(r));
+  return apiFetch(`/api/sites/${id}`, { method: "DELETE" }).then((r) => parse<{ ok: boolean }>(r));
 }
 
 export function getPhotoGeoPoints() {
-  return fetch("/api/photos/geo").then((r) =>
+  return apiFetch("/api/photos/geo").then((r) =>
     parse<{ points: Array<{ lat: number; lng: number }>; total: number }>(r),
   );
 }
@@ -91,7 +101,7 @@ export function getPhotos(params?: { siteId?: string; unassigned?: boolean }) {
   if (params?.siteId) query.set("siteId", params.siteId);
   if (params?.unassigned) query.set("unassigned", "true");
   const suffix = query.toString() ? `?${query}` : "";
-  return fetch(`/api/photos${suffix}`).then((r) => parse<Photo[]>(r));
+  return apiFetch(`/api/photos${suffix}`).then((r) => parse<Photo[]>(r));
 }
 
 export function uploadPhotos(files: File[]) {
@@ -103,11 +113,11 @@ export function uploadPhotos(files: File[]) {
 }
 
 export function deletePhoto(id: string) {
-  return fetch(`/api/photos/${id}`, { method: "DELETE" }).then((r) => parse<{ ok: boolean }>(r));
+  return apiFetch(`/api/photos/${id}`, { method: "DELETE" }).then((r) => parse<{ ok: boolean }>(r));
 }
 
 export function rematchPhoto(id: string) {
-  return fetch(`/api/photos/${id}/match`, { method: "POST" }).then((r) => parse<Photo>(r));
+  return apiFetch(`/api/photos/${id}/match`, { method: "POST" }).then((r) => parse<Photo>(r));
 }
 
 export interface RescanMatchesResult {
@@ -122,13 +132,13 @@ export interface RescanMatchesResult {
 }
 
 export function rematchAllPhotos() {
-  return fetch("/api/photos/rematch", { method: "POST" }).then((r) =>
+  return apiFetch("/api/photos/rematch", { method: "POST" }).then((r) =>
     parse<RescanMatchesResult>(r),
   );
 }
 
 export function assignPhotoToSite(photoId: string, siteId: string) {
-  return fetch(`/api/photos/${photoId}/site`, {
+  return apiFetch(`/api/photos/${photoId}/site`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ siteId }),
@@ -136,7 +146,7 @@ export function assignPhotoToSite(photoId: string, siteId: string) {
 }
 
 export function unassignPhoto(photoId: string) {
-  return fetch(`/api/photos/${photoId}/site`, {
+  return apiFetch(`/api/photos/${photoId}/site`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ siteId: null }),
@@ -185,7 +195,7 @@ export interface AutotaskImportResult {
 }
 
 export function getAutotaskStatus() {
-  return fetch("/api/integrations/autotask/status").then((r) => parse<AutotaskStatus>(r));
+  return apiFetch("/api/integrations/autotask/status").then((r) => parse<AutotaskStatus>(r));
 }
 
 export function saveAutotaskConfig(input: {
@@ -194,7 +204,7 @@ export function saveAutotaskConfig(input: {
   integrationCode: string;
   zoneUrl?: string;
 }) {
-  return fetch("/api/integrations/autotask/config", {
+  return apiFetch("/api/integrations/autotask/config", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -211,13 +221,13 @@ export function saveAutotaskConfig(input: {
 }
 
 export function clearAutotaskConfig() {
-  return fetch("/api/integrations/autotask/config", { method: "DELETE" }).then((r) =>
+  return apiFetch("/api/integrations/autotask/config", { method: "DELETE" }).then((r) =>
     parse<{ ok: boolean }>(r),
   );
 }
 
 export function testAutotaskConnection() {
-  return fetch("/api/integrations/autotask/test", { method: "POST" }).then((r) =>
+  return apiFetch("/api/integrations/autotask/test", { method: "POST" }).then((r) =>
     parse<{ ok: boolean; zoneName?: string; zoneUrl?: string; webUrl?: string; error?: string }>(r),
   );
 }
@@ -225,13 +235,63 @@ export function testAutotaskConnection() {
 export function getAutotaskCompanies(search?: string, limit = 100) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (search?.trim()) params.set("search", search.trim());
-  return fetch(`/api/integrations/autotask/companies?${params}`).then((r) =>
+  return apiFetch(`/api/integrations/autotask/companies?${params}`).then((r) =>
     parse<{ companies: AutotaskCompanyListItem[] }>(r),
   );
 }
 
+export interface BackupRecord {
+  id: string;
+  filename: string;
+  createdAt: number;
+  sizeBytes: number;
+  localPath: string;
+  sharePointItemId: string | null;
+  sharePointWebUrl: string | null;
+  trigger: "scheduled" | "manual";
+  status: "local" | "uploaded" | "failed";
+  error: string | null;
+}
+
+export interface BackupStatus {
+  enabled: boolean;
+  retention: number;
+  cron: string;
+  timezone: string;
+  sharePointConfigured: boolean;
+  driveId: string | null;
+  folderPath: string;
+}
+
+export async function getBackups() {
+  return apiFetch("/api/backups").then((r) =>
+    parse<{ backups: BackupRecord[]; status: BackupStatus }>(r),
+  );
+}
+
+export async function runBackup() {
+  return apiFetch("/api/backups/run", { method: "POST" }).then((r) =>
+    parse<{ backup: BackupRecord }>(r),
+  );
+}
+
+export async function downloadBackup(id: string, filename: string) {
+  const res = await apiFetch(`/api/backups/${encodeURIComponent(id)}/download`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error ?? `Download failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export function importAutotaskCompanies(companyIds: number[]) {
-  return fetch("/api/integrations/autotask/import", {
+  return apiFetch("/api/integrations/autotask/import", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ companyIds }),
