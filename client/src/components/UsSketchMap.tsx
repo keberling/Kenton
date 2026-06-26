@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import {
-  CONTINENTAL_STATES,
+  MAP_STATES,
   clusterGeoPoints,
   createUsMapContext,
   projectUS,
@@ -36,7 +36,7 @@ export function UsSketchMap({ points }: UsSketchMapProps) {
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         className="h-auto w-full"
         role="img"
-        aria-label="Map of the United States showing field photo GPS origins"
+        aria-label="Map of the United States including Alaska and Hawaii showing field photo GPS origins"
       >
         <defs>
           <radialGradient id="origin-glow" cx="50%" cy="50%" r="50%">
@@ -63,7 +63,7 @@ export function UsSketchMap({ points }: UsSketchMapProps) {
         />
 
         <g className="us-map-states">
-          {CONTINENTAL_STATES.map((state) => {
+          {MAP_STATES.map((state) => {
             const d = map.path(state);
             if (!d) return null;
             return (

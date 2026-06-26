@@ -2,7 +2,7 @@ import { geoAlbersUsa, geoPath, type GeoProjection } from "d3-geo";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import statesData from "../data/us-states.json";
 
-/** Continental US bounds for quick inclusion checks */
+/** Lower-48 bounds for quick inclusion checks */
 export const US_BOUNDS = {
   minLng: -124.85,
   maxLng: -66.95,
@@ -10,13 +10,17 @@ export const US_BOUNDS = {
   maxLat: 49.38,
 };
 
-const EXCLUDED_STATES = new Set(["Alaska", "Hawaii", "Puerto Rico", "Guam"]);
+const EXCLUDED_TERRITORIES = new Set(["Puerto Rico", "Guam"]);
 
 export type StateFeature = Feature<Geometry, { name: string }>;
 
-export const CONTINENTAL_STATES: StateFeature[] = (
+/** All US states + DC; Alaska and Hawaii render in geoAlbersUsa inset boxes. */
+export const MAP_STATES: StateFeature[] = (
   statesData as FeatureCollection<Geometry, { name: string }>
-).features.filter((feature) => !EXCLUDED_STATES.has(feature.properties?.name ?? ""));
+).features.filter((feature) => !EXCLUDED_TERRITORIES.has(feature.properties?.name ?? ""));
+
+/** @deprecated use MAP_STATES */
+export const CONTINENTAL_STATES = MAP_STATES;
 
 export interface MapDimensions {
   width: number;
@@ -37,7 +41,7 @@ export function createUsMapContext(dims: MapDimensions = DEFAULT_DIMS): UsMapCon
   const projection = geoAlbersUsa();
   const collection: FeatureCollection = {
     type: "FeatureCollection",
-    features: CONTINENTAL_STATES,
+    features: MAP_STATES,
   };
 
   projection.fitExtent(
@@ -75,6 +79,18 @@ export function isInContinentalUS(lat: number, lng: number): boolean {
   );
 }
 
+function isInAlaska(lat: number, lng: number): boolean {
+  return lat >= 51 && lat <= 72 && lng >= -170 && lng <= -129;
+}
+
+function isInHawaii(lat: number, lng: number): boolean {
+  return lat >= 18 && lat <= 23 && lng >= -161 && lng <= -154;
+}
+
+export function isInMappableUS(lat: number, lng: number): boolean {
+  return isInContinentalUS(lat, lng) || isInAlaska(lat, lng) || isInHawaii(lat, lng);
+}
+
 export interface GeoCluster {
   lat: number;
   lng: number;
@@ -88,7 +104,7 @@ export function clusterGeoPoints(
   const buckets = new Map<string, GeoCluster>();
 
   for (const point of points) {
-    if (!isInContinentalUS(point.lat, point.lng)) continue;
+    if (!isInMappableUS(point.lat, point.lng)) continue;
     const lat = Number(point.lat.toFixed(precision));
     const lng = Number(point.lng.toFixed(precision));
     const key = `${lat},${lng}`;
