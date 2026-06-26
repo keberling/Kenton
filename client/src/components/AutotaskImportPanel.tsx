@@ -86,7 +86,9 @@ export function AutotaskImportPanel({
       const result = await testAutotaskConnection();
       if (!result.ok) throw new Error(result.error ?? "Connection failed");
       setZoneName(result.zoneName ?? null);
-      onImported?.(`Autotask connected — ${result.zoneName ?? "zone resolved"}.`);
+      onImported?.(
+        `Autotask connected — ${result.zoneName ?? "zone resolved"}${result.webUrl ? ` (${result.webUrl})` : ""}.`,
+      );
       await loadCompanies(search);
     } catch (err) {
       onError?.(err instanceof Error ? err.message : "Autotask connection failed");
@@ -177,6 +179,21 @@ export function AutotaskImportPanel({
               ))}
               <li className="text-white/35">AUTOTASK_ZONE_URL (optional)</li>
             </ul>
+            {envDiagnostics && (
+              <ul className="mt-3 space-y-1 font-mono text-[10px] text-white/35">
+                {envDiagnostics.usernameLooksLikeEmail === false && (
+                  <li className="text-amber-400/90">Username does not look like an email — use the API-only user address</li>
+                )}
+                {envDiagnostics.integrationCodeLooksValid === false && (
+                  <li className="text-amber-400/90">
+                    Integration code length {envDiagnostics.integrationCodeLength ?? 0} — expect a long key from Security tab
+                  </li>
+                )}
+                {envDiagnostics.hadWrappingQuotes && (
+                  <li className="text-amber-400/90">Remove wrapping quotes from secret or integration code in Coolify</li>
+                )}
+              </ul>
+            )}
           </div>
         )}
       </section>

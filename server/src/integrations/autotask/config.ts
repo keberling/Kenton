@@ -5,9 +5,21 @@ export interface AutotaskConfig {
   zoneUrl: string | null;
 }
 
+/** Strip whitespace and wrapping quotes from env values (common Coolify/.env mistake). */
+export function sanitizeAutotaskEnvValue(value: string): string {
+  let v = value.trim().replace(/^\uFEFF/, "");
+  while (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 /** Map common mistakes (ww22 web UI URL) to the REST zone base URL. */
 export function normalizeAutotaskZoneUrl(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, "");
+  const trimmed = sanitizeAutotaskEnvValue(url).replace(/\/+$/, "");
   const wwMatch = trimmed.match(/^https?:\/\/ww(\d+)\.autotask\.net/i);
   if (wwMatch) {
     return `https://webservices${wwMatch[1]}.autotask.net/atservicesrest`;
@@ -19,9 +31,9 @@ export function normalizeAutotaskZoneUrl(url: string): string {
 }
 
 export function autotaskConfig(): AutotaskConfig | null {
-  const username = process.env.AUTOTASK_API_USERNAME?.trim() ?? "";
-  const secret = process.env.AUTOTASK_API_SECRET?.trim() ?? "";
-  const integrationCode = process.env.AUTOTASK_INTEGRATION_CODE?.trim() ?? "";
+  const username = sanitizeAutotaskEnvValue(process.env.AUTOTASK_API_USERNAME ?? "");
+  const secret = sanitizeAutotaskEnvValue(process.env.AUTOTASK_API_SECRET ?? "");
+  const integrationCode = sanitizeAutotaskEnvValue(process.env.AUTOTASK_INTEGRATION_CODE ?? "");
   const rawZoneUrl = process.env.AUTOTASK_ZONE_URL?.trim() || null;
   const zoneUrl = rawZoneUrl ? normalizeAutotaskZoneUrl(rawZoneUrl) : null;
 

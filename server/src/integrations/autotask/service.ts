@@ -12,13 +12,27 @@ import {
 import type { AutotaskCompanyListItem, AutotaskImportResult } from "./types.js";
 
 export function autotaskEnvDiagnostics() {
-  const username = process.env.AUTOTASK_API_USERNAME?.trim() ?? "";
-  const secret = process.env.AUTOTASK_API_SECRET?.trim() ?? "";
-  const integrationCode = process.env.AUTOTASK_INTEGRATION_CODE?.trim() ?? "";
+  const rawUsername = process.env.AUTOTASK_API_USERNAME ?? "";
+  const rawSecret = process.env.AUTOTASK_API_SECRET ?? "";
+  const rawCode = process.env.AUTOTASK_INTEGRATION_CODE ?? "";
+  const username = rawUsername.trim();
+  const secret = rawSecret.trim();
+  const integrationCode = rawCode.trim();
+  const cleanUsername = username.replace(/^["']|["']$/g, "");
+  const cleanSecret = secret.replace(/^["']|["']$/g, "");
+  const cleanCode = integrationCode.replace(/^["']|["']$/g, "");
+
   return {
-    hasUsername: Boolean(username),
-    hasSecret: Boolean(secret),
-    hasIntegrationCode: Boolean(integrationCode),
+    hasUsername: Boolean(cleanUsername),
+    hasSecret: Boolean(cleanSecret),
+    hasIntegrationCode: Boolean(cleanCode),
+    usernameLooksLikeEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanUsername),
+    integrationCodeLength: cleanCode.length,
+    secretLength: cleanSecret.length,
+    hadWrappingQuotes:
+      (rawSecret !== cleanSecret && (rawSecret.startsWith('"') || rawSecret.startsWith("'"))) ||
+      (rawCode !== cleanCode && (rawCode.startsWith('"') || rawCode.startsWith("'"))),
+    integrationCodeLooksValid: cleanCode.length >= 8 && !/\s/.test(cleanCode),
   };
 }
 

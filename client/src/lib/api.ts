@@ -131,6 +131,11 @@ export interface AutotaskEnvDiagnostics {
   hasUsername: boolean;
   hasSecret: boolean;
   hasIntegrationCode: boolean;
+  usernameLooksLikeEmail?: boolean;
+  integrationCodeLength?: number;
+  secretLength?: number;
+  hadWrappingQuotes?: boolean;
+  integrationCodeLooksValid?: boolean;
 }
 
 export interface AutotaskStatus {
@@ -167,7 +172,7 @@ export function getAutotaskStatus() {
 
 export function testAutotaskConnection() {
   return fetch("/api/integrations/autotask/test", { method: "POST" }).then((r) =>
-    parse<{ ok: boolean; zoneName?: string; zoneUrl?: string; error?: string }>(r),
+    parse<{ ok: boolean; zoneName?: string; zoneUrl?: string; webUrl?: string; error?: string }>(r),
   );
 }
 

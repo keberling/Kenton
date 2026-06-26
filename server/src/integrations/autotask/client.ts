@@ -26,13 +26,15 @@ function formatAutotaskHttpError(
   zoneUrl?: string,
 ): string {
   if (status === 401) {
+    const detail = text.trim() ? ` Autotask said: ${text.slice(0, 120)}` : "";
     const hints = [
-      "Autotask authentication failed (401). Check:",
-      "• AUTOTASK_API_USERNAME = API-only user email (not your login)",
-      "• AUTOTASK_API_SECRET = that API user's password",
-      "• AUTOTASK_INTEGRATION_CODE = tracking identifier from that user's Security tab (long key, not the integration name)",
-      "• User security level is API User (API-only) with Companies read access",
+      "Autotask authentication failed (401). Zone is OK — username, password, or tracking identifier is wrong for this API user.",
+      "• AUTOTASK_API_USERNAME must exactly match the API-only user's email in Autotask Resources",
+      "• AUTOTASK_API_SECRET must be that user's API password (reset it in Autotask if unsure; avoid quotes in Coolify)",
+      "• AUTOTASK_INTEGRATION_CODE must be the tracking identifier on that same user's Security tab (Custom Internal Integration key, not the integration label)",
+      "• All three values must belong to the same API-only user",
       zoneUrl ? `• API zone: ${zoneUrl}` : "",
+      detail,
     ].filter(Boolean);
     return hints.join(" ");
   }
@@ -149,11 +151,24 @@ async function autotaskQuery<T>(
   return payload.items ?? [];
 }
 
+export async function lookupAutotaskZone(username: string): Promise<AutotaskZoneInfo> {
+  const params = new URLSearchParams({ user: username });
+  const zoneResponse = await fetch(`${ZONE_LOOKUP_URL}?${params}`);
+  if (!zoneResponse.ok) {
+    throw new Error(
+      `Autotask zone lookup failed for username (${zoneResponse.status}). Check AUTOTASK_API_USERNAME is the API-only user email.`,
+    );
+  }
+  return (await zoneResponse.json()) as AutotaskZoneInfo;
+}
+
 export async function testAutotaskConnection(): Promise<{
   zoneName: string;
   zoneUrl: string;
+  webUrl: string;
 }> {
   const config = requireAutotaskConfig();
+  const zone = await lookupAutotaskZone(config.username);
   const zoneUrl = await resolveAutotaskZoneUrl(config);
 
   await autotaskQuery("Companies", {
@@ -161,11 +176,7 @@ export async function testAutotaskConnection(): Promise<{
     MaxRecords: 1,
   });
 
-  const params = new URLSearchParams({ user: config.username });
-  const zoneResponse = await fetch(`${ZONE_LOOKUP_URL}?${params}`);
-  const zone = (await zoneResponse.json()) as AutotaskZoneInfo;
-
-  return { zoneName: zone.zoneName, zoneUrl };
+  return { zoneName: zone.zoneName, zoneUrl, webUrl: zone.webUrl };
 }
 
 export async function queryAutotaskCompanies(options?: {
