@@ -1,7 +1,10 @@
 import { v4 as uuid } from "uuid";
 import { siteMatchRadiusM } from "./config.js";
 import { db } from "./db.js";
+import type { AutotaskConfig } from "./integrations/autotask/config.js";
 import type { AuthUser, Photo, PhotoUploader, Site, User } from "./types.js";
+
+const AUTOTASK_SETTINGS_KEY = "autotask";
 
 interface SiteRow {
   id: string;
@@ -543,6 +546,37 @@ class Store {
       sites: sites.c,
       photosWithGps: withGps.c,
     };
+  }
+
+  getAutotaskCredentials(): AutotaskConfig | null {
+    const row = db
+      .prepare(`SELECT value FROM integration_settings WHERE key = ?`)
+      .get(AUTOTASK_SETTINGS_KEY) as { value: string } | undefined;
+    if (!row?.value) return null;
+    try {
+      const parsed = JSON.parse(row.value) as AutotaskConfig;
+      if (!parsed.username || !parsed.secret || !parsed.integrationCode) return null;
+      return {
+        username: parsed.username,
+        secret: parsed.secret,
+        integrationCode: parsed.integrationCode,
+        zoneUrl: parsed.zoneUrl ?? null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  setAutotaskCredentials(config: AutotaskConfig): void {
+    const now = Date.now();
+    db.prepare(
+      `INSERT INTO integration_settings (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ).run(AUTOTASK_SETTINGS_KEY, JSON.stringify(config), now);
+  }
+
+  clearAutotaskCredentials(): void {
+    db.prepare(`DELETE FROM integration_settings WHERE key = ?`).run(AUTOTASK_SETTINGS_KEY);
   }
 }
 

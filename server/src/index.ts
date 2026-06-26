@@ -14,9 +14,11 @@ import { geocodeAddress } from "./geocode.js";
 import { buildDeploymentRecommendations } from "./siteRecommendations.js";
 import {
   autotaskStatus,
+  configureAutotaskCredentials,
   diagnoseAutotaskConnection,
   importAutotaskCompanies,
   listAutotaskCompaniesForImport,
+  removeAutotaskCredentials,
   testAutotaskConnection,
 } from "./integrations/autotask/service.js";
 import {
@@ -181,6 +183,43 @@ app.get("/api/addresses/reverse", async (req, res) => {
 
 app.get("/api/integrations/autotask/status", (_req, res) => {
   res.json(autotaskStatus());
+});
+
+app.post("/api/integrations/autotask/config", async (req, res) => {
+  const username = typeof req.body?.username === "string" ? req.body.username : "";
+  const secret = typeof req.body?.secret === "string" ? req.body.secret : "";
+  const integrationCode =
+    typeof req.body?.integrationCode === "string" ? req.body.integrationCode : "";
+  const zoneUrl = typeof req.body?.zoneUrl === "string" ? req.body.zoneUrl : null;
+
+  try {
+    const result = await configureAutotaskCredentials({
+      username,
+      secret,
+      integrationCode,
+      zoneUrl,
+    });
+    res.json({ ok: true, saved: true, ...result });
+  } catch (err) {
+    let diagnose = null;
+    try {
+      diagnose = await diagnoseAutotaskConnection();
+    } catch {
+      /* not saved or not configured */
+    }
+    const saved = Boolean(autotaskStatus().configured && autotaskStatus().source === "database");
+    res.status(502).json({
+      ok: false,
+      saved,
+      error: err instanceof Error ? err.message : "Could not save Autotask credentials",
+      diagnose,
+    });
+  }
+});
+
+app.delete("/api/integrations/autotask/config", (_req, res) => {
+  removeAutotaskCredentials();
+  res.json({ ok: true });
 });
 
 app.post("/api/integrations/autotask/test", async (_req, res) => {

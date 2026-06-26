@@ -1,10 +1,14 @@
-import { autotaskConfig } from "./config.js";
+import { autotaskConfig } from "./credentials.js";
 import type { AutotaskCompany, AutotaskZoneInfo } from "./types.js";
 
 const ZONE_LOOKUP_URL =
   "http://webservices.autotask.net/atservicesrest/v1.0/zoneInformation";
 
 let cachedZone: { username: string; url: string } | null = null;
+
+export function clearAutotaskZoneCache(): void {
+  cachedZone = null;
+}
 
 function authHeaders(config: NonNullable<ReturnType<typeof autotaskConfig>>): HeadersInit {
   return {

@@ -136,12 +136,14 @@ export interface AutotaskEnvDiagnostics {
   secretLength?: number;
   hadWrappingQuotes?: boolean;
   integrationCodeLooksValid?: boolean;
+  activeSource?: "database" | "environment" | null;
 }
 
 export interface AutotaskStatus {
   configured: boolean;
   username?: string;
   hasZoneOverride?: boolean;
+  source?: "database" | "environment" | null;
   env?: AutotaskEnvDiagnostics;
 }
 
@@ -168,6 +170,34 @@ export interface AutotaskImportResult {
 
 export function getAutotaskStatus() {
   return fetch("/api/integrations/autotask/status").then((r) => parse<AutotaskStatus>(r));
+}
+
+export function saveAutotaskConfig(input: {
+  username: string;
+  secret: string;
+  integrationCode: string;
+  zoneUrl?: string;
+}) {
+  return fetch("/api/integrations/autotask/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((r) =>
+    parse<{
+      ok: boolean;
+      saved?: boolean;
+      zoneName?: string;
+      zoneUrl?: string;
+      webUrl?: string;
+      error?: string;
+    }>(r),
+  );
+}
+
+export function clearAutotaskConfig() {
+  return fetch("/api/integrations/autotask/config", { method: "DELETE" }).then((r) =>
+    parse<{ ok: boolean }>(r),
+  );
 }
 
 export function testAutotaskConnection() {

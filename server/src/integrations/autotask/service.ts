@@ -1,7 +1,14 @@
 import { geocodeAddress } from "../../geocode.js";
 import { rescanAllPhotoMatches } from "../../matcher.js";
 import { store } from "../../store.js";
-import { autotaskConfig, maskAutotaskUsername } from "./config.js";
+import { maskAutotaskUsername } from "./config.js";
+import {
+  autotaskConfig,
+  clearAutotaskCredentials,
+  resolveAutotaskConfig,
+  saveAutotaskCredentials,
+} from "./credentials.js";
+import { clearAutotaskZoneCache } from "./client.js";
 import {
   formatCompanyAddress,
   getAutotaskCompany,
@@ -12,15 +19,28 @@ import {
 import type { AutotaskCompanyListItem, AutotaskImportResult } from "./types.js";
 
 export function autotaskEnvDiagnostics() {
+  const { config, source } = resolveAutotaskConfig();
+  if (config) {
+    return {
+      hasUsername: true,
+      hasSecret: true,
+      hasIntegrationCode: true,
+      usernameLooksLikeEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.username),
+      integrationCodeLength: config.integrationCode.length,
+      secretLength: config.secret.length,
+      hadWrappingQuotes: false,
+      integrationCodeLooksValid:
+        config.integrationCode.length >= 8 && !/\s/.test(config.integrationCode),
+      activeSource: source,
+    };
+  }
+
   const rawUsername = process.env.AUTOTASK_API_USERNAME ?? "";
   const rawSecret = process.env.AUTOTASK_API_SECRET ?? "";
   const rawCode = process.env.AUTOTASK_INTEGRATION_CODE ?? "";
-  const username = rawUsername.trim();
-  const secret = rawSecret.trim();
-  const integrationCode = rawCode.trim();
-  const cleanUsername = username.replace(/^["']|["']$/g, "");
-  const cleanSecret = secret.replace(/^["']|["']$/g, "");
-  const cleanCode = integrationCode.replace(/^["']|["']$/g, "");
+  const cleanUsername = rawUsername.trim().replace(/^["']|["']$/g, "");
+  const cleanSecret = rawSecret.trim().replace(/^["']|["']$/g, "");
+  const cleanCode = rawCode.trim().replace(/^["']|["']$/g, "");
 
   return {
     hasUsername: Boolean(cleanUsername),
@@ -30,25 +50,43 @@ export function autotaskEnvDiagnostics() {
     integrationCodeLength: cleanCode.length,
     secretLength: cleanSecret.length,
     hadWrappingQuotes:
-      (rawSecret !== cleanSecret && (rawSecret.startsWith('"') || rawSecret.startsWith("'"))) ||
-      (rawCode !== cleanCode && (rawCode.startsWith('"') || rawCode.startsWith("'"))),
+      (rawSecret.trim() !== cleanSecret && (rawSecret.startsWith('"') || rawSecret.startsWith("'"))) ||
+      (rawCode.trim() !== cleanCode && (rawCode.startsWith('"') || rawCode.startsWith("'"))),
     integrationCodeLooksValid: cleanCode.length >= 8 && !/\s/.test(cleanCode),
+    activeSource: null,
   };
 }
 
 export function autotaskStatus() {
   const env = autotaskEnvDiagnostics();
-  const config = autotaskConfig();
+  const { config, source } = resolveAutotaskConfig();
   if (!config) {
-    return { configured: false as const, env };
+    return { configured: false as const, env, source: null };
   }
 
   return {
     configured: true as const,
     username: maskAutotaskUsername(config.username),
     hasZoneOverride: Boolean(config.zoneUrl),
+    source,
     env,
   };
+}
+
+export async function configureAutotaskCredentials(input: {
+  username: string;
+  secret: string;
+  integrationCode: string;
+  zoneUrl?: string | null;
+}) {
+  saveAutotaskCredentials(input);
+  clearAutotaskZoneCache();
+  return testAutotaskConnection();
+}
+
+export function removeAutotaskCredentials() {
+  clearAutotaskCredentials();
+  clearAutotaskZoneCache();
 }
 
 export async function listAutotaskCompaniesForImport(options?: {

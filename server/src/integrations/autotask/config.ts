@@ -30,7 +30,7 @@ export function normalizeAutotaskZoneUrl(url: string): string {
   return trimmed;
 }
 
-export function autotaskConfig(): AutotaskConfig | null {
+export function autotaskConfigFromEnv(): AutotaskConfig | null {
   const username = sanitizeAutotaskEnvValue(process.env.AUTOTASK_API_USERNAME ?? "");
   const secret = sanitizeAutotaskEnvValue(process.env.AUTOTASK_API_SECRET ?? "");
   const integrationCode = sanitizeAutotaskEnvValue(process.env.AUTOTASK_INTEGRATION_CODE ?? "");

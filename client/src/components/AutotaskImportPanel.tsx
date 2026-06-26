@@ -9,6 +9,7 @@ import {
   type AutotaskCompanyListItem,
   type AutotaskEnvDiagnostics,
 } from "../lib/api";
+import { AutotaskCredentialsForm } from "./AutotaskCredentialsForm";
 import { TechStatusChip } from "./TechMeta";
 
 interface AutotaskImportPanelProps {
@@ -33,12 +34,15 @@ export function AutotaskImportPanel({
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showCredentialForm, setShowCredentialForm] = useState(false);
+  const [configSource, setConfigSource] = useState<"database" | "environment" | null>(null);
 
   const loadStatus = useCallback(async () => {
     try {
       const status = await getAutotaskStatus();
       setConfigured(status.configured);
       setEnvDiagnostics(status.env ?? null);
+      setConfigSource(status.source ?? status.env?.activeSource ?? null);
       setUsername(status.configured ? status.username ?? null : null);
     } catch {
       setConfigured(false);
@@ -151,48 +155,19 @@ export function AutotaskImportPanel({
           />
         </button>
         {!collapsed && (
-          <div className="border-t border-white/5 px-4 pb-4 pt-3">
-            <p className="text-sm leading-relaxed text-white/45">
-              Add your Autotask API credentials to the server environment, then redeploy. Kenton will
-              pull active customer organizations and their addresses into deployments.
-            </p>
-            <p className="mt-3 text-sm text-white/45">
-              Set these on the <strong className="font-medium text-white/70">server process</strong> (Coolify
-              Environment Variables, Docker env, or a <code className="font-mono text-[11px]">.env</code> file
-              in the project root), then restart or redeploy.
-            </p>
-            <ul className="mt-3 space-y-1.5 font-mono text-[10px]">
-              {(
-                [
-                  ["AUTOTASK_API_USERNAME", envDiagnostics?.hasUsername],
-                  ["AUTOTASK_API_SECRET", envDiagnostics?.hasSecret],
-                  ["AUTOTASK_INTEGRATION_CODE", envDiagnostics?.hasIntegrationCode],
-                ] as const
-              ).map(([name, seen]) => (
-                <li
-                  key={name}
-                  className={seen ? "text-emerald-400/80" : seen === false ? "text-rose-400/80" : "text-white/35"}
-                >
-                  {seen ? "✓" : seen === false ? "✗" : "·"} {name}
-                  {seen === false ? " — not visible to server" : seen ? " — detected" : ""}
-                </li>
-              ))}
-              <li className="text-white/35">AUTOTASK_ZONE_URL (optional)</li>
-            </ul>
-            {envDiagnostics && (
-              <ul className="mt-3 space-y-1 font-mono text-[10px] text-white/35">
-                {envDiagnostics.usernameLooksLikeEmail === false && (
-                  <li className="text-amber-400/90">Username does not look like an email — use the API-only user address</li>
-                )}
-                {envDiagnostics.integrationCodeLooksValid === false && (
-                  <li className="text-amber-400/90">
-                    Integration code length {envDiagnostics.integrationCodeLength ?? 0} — expect a long key from Security tab
-                  </li>
-                )}
-                {envDiagnostics.hadWrappingQuotes && (
-                  <li className="text-amber-400/90">Remove wrapping quotes from secret or integration code in Coolify</li>
-                )}
-              </ul>
+          <div className="border-t border-white/5 px-4 pb-4 pt-3 sm:px-5">
+            <AutotaskCredentialsForm
+              onSaved={async (message) => {
+                onImported?.(message);
+                await loadStatus();
+                void loadCompanies("");
+              }}
+              onError={(message) => onError?.(message)}
+            />
+            {envDiagnostics?.activeSource === "environment" && (
+              <p className="mt-3 font-mono text-[10px] text-amber-400/80">
+                Env vars detected — saving here stores credentials in Kenton and takes priority.
+              </p>
             )}
           </div>
         )}
@@ -226,6 +201,13 @@ export function AutotaskImportPanel({
           </div>
           <div className="hidden flex-wrap gap-2 sm:flex">
             {username && <TechStatusChip code="API" label={username} tone="muted" />}
+            {configSource && (
+              <TechStatusChip
+                code="CFG"
+                label={configSource === "database" ? "saved" : "env"}
+                tone={configSource === "database" ? "emerald" : "amber"}
+              />
+            )}
             {zoneName && <TechStatusChip code="ZONE" label={zoneName} tone="cyan" />}
           </div>
         </div>
@@ -318,6 +300,30 @@ export function AutotaskImportPanel({
             ? "Importing…"
             : `Import ${importable.length || ""} deployment${importable.length === 1 ? "" : "s"}`.trim()}
         </button>
+      </div>
+
+      <div className="mt-6 border-t border-white/5 pt-4">
+        <button
+          type="button"
+          onClick={() => setShowCredentialForm((prev) => !prev)}
+          className="font-mono text-[10px] uppercase tracking-wider text-white/35 transition hover:text-white/60"
+        >
+          {showCredentialForm ? "− Hide credentials" : "+ Update API credentials"}
+        </button>
+        {showCredentialForm && (
+          <div className="mt-3">
+            <AutotaskCredentialsForm
+              initialUsername={username?.includes("***") ? "" : username ?? ""}
+              compact
+              onSaved={(message) => {
+                onImported?.(message);
+                void loadStatus();
+                void loadCompanies(search);
+              }}
+              onError={(message) => onError?.(message)}
+            />
+          </div>
+        )}
       </div>
         </div>
       )}

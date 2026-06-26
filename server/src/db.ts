@@ -143,6 +143,12 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_users_oid ON users(microsoft_oid);
+
+  CREATE TABLE IF NOT EXISTS integration_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `);
 
 ensureSitesColumn("geocode_source", "TEXT");
