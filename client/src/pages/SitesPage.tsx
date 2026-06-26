@@ -3,6 +3,7 @@ import { ChevronRight, Images, MapPinned, Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
+import { AutotaskImportPanel } from "../components/AutotaskImportPanel";
 import { PageHeader } from "../components/PageHeader";
 import { RescanMatchesButton } from "../components/RescanMatchesButton";
 import { SiteGeocodeInfo } from "../components/SiteGeocodeInfo";
@@ -75,6 +76,19 @@ export function SitesPage() {
             onMessage={(nextMessage) => setMessage(nextMessage)}
           />
         }
+      />
+
+      <AutotaskImportPanel
+        onImported={(nextMessage) => {
+          setMessage(nextMessage);
+          setError(null);
+          invalidate();
+          load();
+        }}
+        onError={(nextError) => {
+          setError(nextError);
+          setMessage(null);
+        }}
       />
 
       <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
@@ -178,6 +192,7 @@ export function SitesPage() {
                         <p className="mt-1 text-sm text-white/45">{site.address}</p>
                         <p className="mt-1 font-mono text-[9px] text-white/25">
                           NODE::{shortId(site.id, 8)} · RAD::{site.radiusMeters}m
+                          {site.autotaskCompanyId ? ` · AT::${site.autotaskCompanyId}` : ""}
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2">

@@ -15,6 +15,7 @@ export interface Site {
   lng: number | null;
   radiusMeters: number;
   geocodeSource: string | null;
+  autotaskCompanyId?: number | null;
   createdAt: number;
   updatedAt: number;
   photoCount?: number;

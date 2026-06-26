@@ -126,3 +126,56 @@ export function unassignPhoto(photoId: string) {
     body: JSON.stringify({ siteId: null }),
   }).then((r) => parse<Photo>(r));
 }
+
+export interface AutotaskStatus {
+  configured: boolean;
+  username?: string;
+  hasZoneOverride?: boolean;
+}
+
+export interface AutotaskCompanyListItem {
+  id: number;
+  companyName: string;
+  companyType: number | null;
+  isActive: boolean;
+  address: string;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  alreadyImported: boolean;
+  existingSiteId: string | null;
+}
+
+export interface AutotaskImportResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  geocoded: number;
+  matchedPhotos: number;
+}
+
+export function getAutotaskStatus() {
+  return fetch("/api/integrations/autotask/status").then((r) => parse<AutotaskStatus>(r));
+}
+
+export function testAutotaskConnection() {
+  return fetch("/api/integrations/autotask/test", { method: "POST" }).then((r) =>
+    parse<{ ok: boolean; zoneName?: string; zoneUrl?: string; error?: string }>(r),
+  );
+}
+
+export function getAutotaskCompanies(search?: string, limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (search?.trim()) params.set("search", search.trim());
+  return fetch(`/api/integrations/autotask/companies?${params}`).then((r) =>
+    parse<{ companies: AutotaskCompanyListItem[] }>(r),
+  );
+}
+
+export function importAutotaskCompanies(companyIds: number[]) {
+  return fetch("/api/integrations/autotask/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ companyIds }),
+  }).then((r) => parse<AutotaskImportResult>(r));
+}

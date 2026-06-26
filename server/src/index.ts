@@ -12,6 +12,12 @@ import { reverseGeocodeAddress, searchAddresses } from "./addressSearch.js";
 import { geocodeAddress } from "./geocode.js";
 import { buildDeploymentRecommendations } from "./siteRecommendations.js";
 import {
+  autotaskStatus,
+  importAutotaskCompanies,
+  listAutotaskCompaniesForImport,
+  testAutotaskConnection,
+} from "./integrations/autotask/service.js";
+import {
   matchPhotoToSite,
   rematchAfterSiteChange,
   rescanAllPhotoMatches,
@@ -168,6 +174,49 @@ app.get("/api/addresses/reverse", async (req, res) => {
     res.json({ suggestion });
   } catch {
     res.status(502).json({ error: "Reverse geocode unavailable" });
+  }
+});
+
+app.get("/api/integrations/autotask/status", (_req, res) => {
+  res.json(autotaskStatus());
+});
+
+app.post("/api/integrations/autotask/test", async (_req, res) => {
+  try {
+    const result = await testAutotaskConnection();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(502).json({
+      ok: false,
+      error: err instanceof Error ? err.message : "Autotask connection failed",
+    });
+  }
+});
+
+app.get("/api/integrations/autotask/companies", async (req, res) => {
+  try {
+    const search = typeof req.query.search === "string" ? req.query.search : undefined;
+    const limit = Number(req.query.limit) || undefined;
+    const companies = await listAutotaskCompaniesForImport({ search, limit });
+    res.json({ companies });
+  } catch (err) {
+    res.status(502).json({
+      error: err instanceof Error ? err.message : "Could not load Autotask clients",
+    });
+  }
+});
+
+app.post("/api/integrations/autotask/import", async (req, res) => {
+  const companyIds = Array.isArray(req.body?.companyIds) ? req.body.companyIds : [];
+  try {
+    const result = await importAutotaskCompanies(
+      companyIds.map((id: unknown) => Number(id)).filter((id: number) => Number.isInteger(id)),
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({
+      error: err instanceof Error ? err.message : "Autotask import failed",
+    });
   }
 });
 

@@ -52,6 +52,18 @@ npm run dev
 | `AZURE_TENANT_ID` | — | Microsoft Entra directory (tenant) ID |
 | `AZURE_API_SCOPE` | `api://{clientId}/access_as_user` | API scope exposed in your app registration |
 | `AUTH_REQUIRED` | `true` when Azure is set | Require Microsoft sign-in for uploads |
+| `AUTOTASK_API_USERNAME` | — | Autotask API-only user email |
+| `AUTOTASK_API_SECRET` | — | Autotask API user password/secret |
+| `AUTOTASK_INTEGRATION_CODE` | — | Tracking identifier from the API user's Security tab |
+| `AUTOTASK_ZONE_URL` | auto | Optional REST zone URL override (e.g. `https://webservices3.autotask.net/atservicesrest`) |
+
+## Autotask PSA import
+
+When Autotask env vars are set, the **Deployments** page shows an **Import clients** panel. Kenton queries active Autotask **customer** organizations, shows their addresses, and imports selected clients as geocoded deployments. Re-importing updates name/address for sites already linked to that Autotask company ID.
+
+1. Create an **API User (API-only)** in Autotask with Companies read access.
+2. Copy the **API tracking identifier** from the user's Security tab into `AUTOTASK_INTEGRATION_CODE`.
+3. Set `AUTOTASK_API_USERNAME` and `AUTOTASK_API_SECRET`, redeploy, then use **Test connection** on the Deployments page.
 
 ## Microsoft SSO (Entra ID)
 

@@ -11,6 +11,7 @@ interface SiteRow {
   lng: number | null;
   radius_meters: number;
   geocode_source: string | null;
+  autotask_company_id?: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -94,6 +95,7 @@ function rowToSite(row: SiteRow, photoCount = 0): Site {
     lng: row.lng,
     radiusMeters: row.radius_meters,
     geocodeSource: row.geocode_source ?? null,
+    autotaskCompanyId: row.autotask_company_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     photoCount,
@@ -241,6 +243,17 @@ class Store {
     return rowToSite(row, count.c);
   }
 
+  findSiteByAutotaskCompanyId(companyId: number): Site | null {
+    const row = db
+      .prepare(`SELECT * FROM sites WHERE autotask_company_id = ?`)
+      .get(companyId) as SiteRow | undefined;
+    if (!row) return null;
+    const count = db
+      .prepare(`SELECT COUNT(*) AS c FROM photos WHERE site_id = ?`)
+      .get(row.id) as { c: number };
+    return rowToSite(row, count.c);
+  }
+
   createSite(input: {
     name: string;
     address: string;
@@ -248,6 +261,7 @@ class Store {
     lng: number | null;
     radiusMeters?: number;
     geocodeSource?: string | null;
+    autotaskCompanyId?: number | null;
   }): Site {
     const now = Date.now();
     const site: SiteRow = {
@@ -258,13 +272,17 @@ class Store {
       lng: input.lng,
       radius_meters: input.radiusMeters ?? siteMatchRadiusM(),
       geocode_source: input.geocodeSource ?? null,
+      autotask_company_id: input.autotaskCompanyId ?? null,
       created_at: now,
       updated_at: now,
     };
 
     db.prepare(`
-      INSERT INTO sites (id, name, address, lat, lng, radius_meters, geocode_source, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sites (
+        id, name, address, lat, lng, radius_meters, geocode_source,
+        autotask_company_id, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       site.id,
       site.name,
@@ -273,11 +291,39 @@ class Store {
       site.lng,
       site.radius_meters,
       site.geocode_source,
+      site.autotask_company_id ?? null,
       site.created_at,
       site.updated_at,
     );
 
     return rowToSite(site, 0);
+  }
+
+  updateSiteFromAutotask(
+    id: string,
+    input: {
+      name: string;
+      address: string;
+      lat: number | null;
+      lng: number | null;
+      geocodeSource: string | null;
+    },
+  ): Site | null {
+    const now = Date.now();
+    db.prepare(`
+      UPDATE sites
+      SET name = ?, address = ?, lat = ?, lng = ?, geocode_source = ?, updated_at = ?
+      WHERE id = ?
+    `).run(
+      input.name.trim().slice(0, 120),
+      input.address.trim().slice(0, 240),
+      input.lat,
+      input.lng,
+      input.geocodeSource,
+      now,
+      id,
+    );
+    return this.getSite(id);
   }
 
   updateSiteCoords(

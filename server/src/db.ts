@@ -156,6 +156,11 @@ ensurePhotosColumn("uploader_job_title", "TEXT");
 ensurePhotosColumn("uploader_department", "TEXT");
 ensurePhotosColumn("uploader_office_location", "TEXT");
 ensurePhotosColumn("match_hold", "INTEGER NOT NULL DEFAULT 0");
+ensureSitesColumn("autotask_company_id", "INTEGER");
+
+db.exec(
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_sites_autotask_company ON sites(autotask_company_id) WHERE autotask_company_id IS NOT NULL`,
+);
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_uploader ON photos(uploaded_by_user_id)`);
 db.exec(
