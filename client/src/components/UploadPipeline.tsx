@@ -286,6 +286,21 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
                       />
                     </div>
 
+                    {item.clientMeta?.lat != null && item.clientMeta.lng != null && item.phase !== "done" && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <TechStatusChip
+                          code="GPS"
+                          label={item.clientMeta.gpsSource === "device" ? "DEVICE FIX" : "EXIF LOCK"}
+                          tone="emerald"
+                        />
+                        {formatCoords(item.clientMeta.lat, item.clientMeta.lng) && (
+                          <span className="font-mono text-[10px] text-cyan-400/70">
+                            {formatCoords(item.clientMeta.lat, item.clientMeta.lng)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {(item.phase === "uplink" || item.phase === "queued") && (
                       <div className="mt-2">
                         <div className="mb-1 flex justify-between font-mono text-[9px] text-white/30">
@@ -313,7 +328,11 @@ export function UploadPipeline({ batchId, items, sessionStartedAt, active }: Upl
                       <div className="mt-2 space-y-2">
                         <div className="flex flex-wrap gap-1.5">
                           {photo.hasGps ? (
-                            <TechStatusChip code="GPS" label="LOCK" tone="emerald" />
+                            <TechStatusChip
+                              code="GPS"
+                              label={item.clientMeta?.gpsSource === "device" ? "DEVICE" : "LOCK"}
+                              tone="emerald"
+                            />
                           ) : (
                             <TechStatusChip code="GPS" label="NO FIX" tone="amber" />
                           )}

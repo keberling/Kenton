@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { UploadQueueItem } from "../components/UploadPipeline";
 import { prepareUploadFile, type PreparedUpload } from "./imagePrep";
+import { isImageFile } from "./imageTypes";
 import {
   deletePersistedItem,
   loadPersistedItems,
@@ -295,7 +296,7 @@ export function IngestProvider({ children }: { children: React.ReactNode }) {
 
   const startIngest = useCallback(
     async (files: FileList | File[]) => {
-      const images = [...files].filter((f) => f.type.startsWith("image/"));
+      const images = [...files].filter((f) => isImageFile(f));
       if (!images.length) {
         setError("Image files only.");
         return;

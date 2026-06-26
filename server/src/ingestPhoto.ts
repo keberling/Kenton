@@ -10,11 +10,11 @@ function mergeMeta(
   originalName: string,
 ) {
   return {
-    lat: serverMeta.lat ?? clientMeta?.lat ?? null,
-    lng: serverMeta.lng ?? clientMeta?.lng ?? null,
-    takenAt: serverMeta.takenAt ?? clientMeta?.takenAt ?? null,
-    width: serverMeta.width ?? clientMeta?.width ?? null,
-    height: serverMeta.height ?? clientMeta?.height ?? null,
+    lat: clientMeta?.lat ?? serverMeta.lat ?? null,
+    lng: clientMeta?.lng ?? serverMeta.lng ?? null,
+    takenAt: clientMeta?.takenAt ?? serverMeta.takenAt ?? null,
+    width: clientMeta?.width ?? serverMeta.width ?? null,
+    height: clientMeta?.height ?? serverMeta.height ?? null,
     originalName: clientMeta?.originalName ?? originalName,
   };
 }

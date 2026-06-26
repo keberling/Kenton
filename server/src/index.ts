@@ -66,11 +66,21 @@ const storage = multer.diskStorage({
   },
 });
 
+const IMAGE_EXTENSIONS = new Set([
+  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif", ".avif", ".bmp", ".tif", ".tiff",
+]);
+
+function isImageUpload(file: Express.Multer.File): boolean {
+  if (file.mimetype.startsWith("image/")) return true;
+  const ext = path.extname(file.originalname).toLowerCase();
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
 const upload = multer({
   storage,
   limits: { fileSize: 30 * 1024 * 1024, files: 20 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    if (isImageUpload(file)) {
       cb(null, true);
       return;
     }

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ImagePlus, Loader2, RefreshCw, Upload, Zap } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { prefetchDeviceLocation } from "../lib/deviceLocation";
 import { PageHeader } from "../components/PageHeader";
 import { StatCards } from "../components/StatCards";
 import { TechMeta, TechMetaRow, TechStatusChip } from "../components/TechMeta";
@@ -33,8 +34,13 @@ export function UploadPage() {
   } = useIngest();
   const failedCount = queue.filter((item) => item.phase === "error").length;
 
+  useEffect(() => {
+    prefetchDeviceLocation();
+  }, []);
+
   const handleFiles = (files: FileList | File[]) => {
     clearError();
+    prefetchDeviceLocation();
     void startIngest(files);
   };
 

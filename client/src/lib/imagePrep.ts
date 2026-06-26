@@ -1,4 +1,8 @@
-import exifr from "exifr";
+import { getDeviceLocation } from "./deviceLocation";
+import { extractImageMeta } from "./exifExtract";
+import { isImageFile, normalizeImageMime } from "./imageTypes";
+
+export type GpsSource = "exif" | "device" | null;
 
 export interface ClientPhotoMeta {
   lat: number | null;
@@ -7,6 +11,8 @@ export interface ClientPhotoMeta {
   width: number | null;
   height: number | null;
   originalName: string;
+  gpsSource?: GpsSource;
+  gpsAccuracyMeters?: number | null;
 }
 
 export interface PreparedUpload {
@@ -21,36 +27,34 @@ const MAX_EDGE = 2400;
 const JPEG_QUALITY = 0.82;
 const SKIP_COMPRESS_BELOW = 450_000;
 
+async function applyDeviceGpsFallback(meta: ClientPhotoMeta): Promise<void> {
+  if (meta.lat != null && meta.lng != null) return;
+
+  const fix = await getDeviceLocation();
+  if (!fix) return;
+
+  meta.lat = fix.lat;
+  meta.lng = fix.lng;
+  meta.gpsSource = "device";
+  meta.gpsAccuracyMeters = fix.accuracyMeters;
+}
+
 async function extractMeta(file: File): Promise<ClientPhotoMeta> {
   try {
-    const [gps, parsed] = await Promise.all([
-      exifr.gps(file).catch(() => null),
-      exifr
-        .parse(file, {
-          pick: ["DateTimeOriginal", "CreateDate", "ImageWidth", "ImageHeight", "ExifImageWidth", "ExifImageHeight"],
-        })
-        .catch(() => null),
-    ]);
+    const extracted = await extractImageMeta(file);
+    const meta: ClientPhotoMeta = {
+      ...extracted,
+      originalName: file.name,
+      gpsSource: extracted.lat != null && extracted.lng != null ? "exif" : null,
+    };
 
-    let takenAt: number | null = null;
-    const dateValue = parsed?.DateTimeOriginal ?? parsed?.CreateDate;
-    if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
-      takenAt = dateValue.getTime();
+    if (meta.lat == null || meta.lng == null) {
+      await applyDeviceGpsFallback(meta);
     }
 
-    const width = parsed?.ExifImageWidth ?? parsed?.ImageWidth ?? null;
-    const height = parsed?.ExifImageHeight ?? parsed?.ImageHeight ?? null;
-
-    return {
-      lat: gps?.latitude ?? null,
-      lng: gps?.longitude ?? null,
-      takenAt,
-      width: typeof width === "number" ? width : null,
-      height: typeof height === "number" ? height : null,
-      originalName: file.name,
-    };
+    return meta;
   } catch {
-    return {
+    const meta: ClientPhotoMeta = {
       lat: null,
       lng: null,
       takenAt: null,
@@ -58,12 +62,15 @@ async function extractMeta(file: File): Promise<ClientPhotoMeta> {
       height: null,
       originalName: file.name,
     };
+    await applyDeviceGpsFallback(meta);
+    return meta;
   }
 }
 
 async function compressRaster(file: File, meta: ClientPhotoMeta): Promise<File | null> {
-  if (!file.type.startsWith("image/") || file.type.includes("svg")) return null;
-  if (file.size < SKIP_COMPRESS_BELOW && (file.type === "image/jpeg" || file.type === "image/webp")) {
+  const mime = normalizeImageMime(file);
+  if (!isImageFile(file) || mime.includes("svg")) return null;
+  if (file.size < SKIP_COMPRESS_BELOW && (mime === "image/jpeg" || mime === "image/webp")) {
     return null;
   }
 
@@ -109,6 +116,7 @@ export async function prepareUploadFile(
 ): Promise<PreparedUpload> {
   onProgress?.("EXIF::SCAN");
   const meta = await extractMeta(file);
+  onProgress?.(meta.gpsSource === "device" ? "GPS::DEVICE" : meta.gpsSource === "exif" ? "GPS::EXIF" : "GPS::NONE");
   onProgress?.("IMG::OPTIMIZE");
   const compressed = await compressRaster(file, meta);
   const uploadFile = compressed ?? file;

@@ -1,6 +1,7 @@
 import type { Photo } from "../types";
 import { authHeaders } from "./auth/token";
 import type { ClientPhotoMeta, PreparedUpload } from "./imagePrep";
+import { normalizeImageMime } from "./imageTypes";
 
 export interface UploadProgress {
   loaded: number;
@@ -69,7 +70,7 @@ async function createUploadSession(prepared: PreparedUpload, totalChunks: number
     },
     body: JSON.stringify({
       originalName: prepared.meta.originalName,
-      mimeType: prepared.file.type || "image/jpeg",
+      mimeType: normalizeImageMime(prepared.file),
       totalSize: prepared.uploadSize,
       totalChunks,
       clientMeta: prepared.meta,
