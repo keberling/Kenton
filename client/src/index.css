@@ -486,6 +486,11 @@ button.neu-raised-sm:hover:not(:disabled) {
   stroke-width: 1;
 }
 
+.us-map-canvas-full {
+  fill: color-mix(in srgb, var(--panel-mid) 40%, transparent);
+  stroke: none;
+}
+
 .us-map-state {
   fill: color-mix(in srgb, var(--fg-faint) 7%, transparent);
   stroke: color-mix(in srgb, var(--fg-subtle) 55%, transparent);

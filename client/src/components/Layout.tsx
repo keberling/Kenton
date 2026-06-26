@@ -1,7 +1,7 @@
 import { Activity, Cpu, Globe2, HardDrive, Images, MapPinned, Radio, Settings2, Upload } from "lucide-react";
 import { MatchNavBadge } from "./MatchNavBadge";
 import { RescanMatchesButton } from "./RescanMatchesButton";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { AmbientBackground } from "./AmbientBackground";
 import { AuthPanel } from "./AuthPanel";
 import { IngestHud } from "./IngestHud";
@@ -28,6 +28,8 @@ function formatSyncAge(ms: number | null): string {
 }
 
 export function Layout() {
+  const location = useLocation();
+  const isMapPage = /\/map\/?$/.test(location.pathname);
   const { theme } = useTheme();
   const { stats, lastSyncAt, syncing } = useLiveData();
 
@@ -135,7 +137,11 @@ export function Layout() {
         </aside>
 
         <div className="flex min-h-dvh flex-1 flex-col lg:pl-64">
-          <header className="panel mobile-header-bg sticky top-0 z-10 rounded-none border-x-0 border-t-0 px-4 py-4 sm:px-6 lg:hidden">
+          <header
+            className={`panel mobile-header-bg sticky top-0 z-10 rounded-none border-x-0 border-t-0 px-4 py-4 sm:px-6 lg:hidden ${
+              isMapPage ? "hidden" : ""
+            }`}
+          >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="neu-raised-sm flex h-9 w-9 items-center justify-center rounded-lg">
@@ -162,7 +168,13 @@ export function Layout() {
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 pb-28 sm:px-6 lg:pb-8">
+          <main
+            className={
+              isMapPage
+                ? "relative min-h-0 flex-1 overflow-hidden"
+                : "flex-1 px-4 py-6 pb-28 sm:px-6 lg:pb-8"
+            }
+          >
             <Outlet />
           </main>
         </div>

@@ -9,6 +9,7 @@ import {
 
 interface UsSketchMapProps {
   points: Array<{ lat: number; lng: number }>;
+  fullscreen?: boolean;
 }
 
 const MAP_WIDTH = 1000;
@@ -22,7 +23,7 @@ function dotRadius(count: number): number {
   return 4.5;
 }
 
-export function UsSketchMap({ points }: UsSketchMapProps) {
+export function UsSketchMap({ points, fullscreen = false }: UsSketchMapProps) {
   const map = useMemo(
     () => createUsMapContext({ width: MAP_WIDTH, height: MAP_HEIGHT, padding: MAP_PADDING }),
     [],
@@ -31,10 +32,13 @@ export function UsSketchMap({ points }: UsSketchMapProps) {
   const maxCount = clusters[0]?.count ?? 1;
 
   return (
-    <div className="us-origin-map relative mx-auto w-full max-w-5xl">
+    <div
+      className={`us-origin-map relative h-full w-full ${fullscreen ? "" : "mx-auto max-w-5xl"}`}
+    >
       <svg
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-        className="h-auto w-full"
+        preserveAspectRatio="xMidYMid meet"
+        className={fullscreen ? "h-full w-full" : "h-auto w-full"}
         role="img"
         aria-label="Map of the United States including Alaska and Hawaii showing field photo GPS origins"
       >
@@ -53,14 +57,18 @@ export function UsSketchMap({ points }: UsSketchMapProps) {
           </filter>
         </defs>
 
-        <rect
-          x={12}
-          y={12}
-          width={MAP_WIDTH - 24}
-          height={MAP_HEIGHT - 24}
-          rx={16}
-          className="us-map-canvas"
-        />
+        {fullscreen ? (
+          <rect x={0} y={0} width={MAP_WIDTH} height={MAP_HEIGHT} className="us-map-canvas-full" />
+        ) : (
+          <rect
+            x={12}
+            y={12}
+            width={MAP_WIDTH - 24}
+            height={MAP_HEIGHT - 24}
+            rx={16}
+            className="us-map-canvas"
+          />
+        )}
 
         <g className="us-map-states">
           {MAP_STATES.map((state) => {
