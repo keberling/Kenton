@@ -7,6 +7,7 @@ import {
   importAutotaskCompanies,
   testAutotaskConnection,
   type AutotaskCompanyListItem,
+  type AutotaskEnvDiagnostics,
 } from "../lib/api";
 import { TechStatusChip } from "./TechMeta";
 
@@ -23,6 +24,7 @@ export function AutotaskImportPanel({
 }: AutotaskImportPanelProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [envDiagnostics, setEnvDiagnostics] = useState<AutotaskEnvDiagnostics | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [zoneName, setZoneName] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -36,6 +38,7 @@ export function AutotaskImportPanel({
     try {
       const status = await getAutotaskStatus();
       setConfigured(status.configured);
+      setEnvDiagnostics(status.env ?? null);
       setUsername(status.configured ? status.username ?? null : null);
     } catch {
       setConfigured(false);
@@ -151,11 +154,28 @@ export function AutotaskImportPanel({
               Add your Autotask API credentials to the server environment, then redeploy. Kenton will
               pull active customer organizations and their addresses into deployments.
             </p>
-            <ul className="mt-3 space-y-1 font-mono text-[10px] text-white/35">
-              <li>AUTOTASK_API_USERNAME</li>
-              <li>AUTOTASK_API_SECRET</li>
-              <li>AUTOTASK_INTEGRATION_CODE</li>
-              <li>AUTOTASK_ZONE_URL (optional)</li>
+            <p className="mt-3 text-sm text-white/45">
+              Set these on the <strong className="font-medium text-white/70">server process</strong> (Coolify
+              Environment Variables, Docker env, or a <code className="font-mono text-[11px]">.env</code> file
+              in the project root), then restart or redeploy.
+            </p>
+            <ul className="mt-3 space-y-1.5 font-mono text-[10px]">
+              {(
+                [
+                  ["AUTOTASK_API_USERNAME", envDiagnostics?.hasUsername],
+                  ["AUTOTASK_API_SECRET", envDiagnostics?.hasSecret],
+                  ["AUTOTASK_INTEGRATION_CODE", envDiagnostics?.hasIntegrationCode],
+                ] as const
+              ).map(([name, seen]) => (
+                <li
+                  key={name}
+                  className={seen ? "text-emerald-400/80" : seen === false ? "text-rose-400/80" : "text-white/35"}
+                >
+                  {seen ? "✓" : seen === false ? "✗" : "·"} {name}
+                  {seen === false ? " — not visible to server" : seen ? " — detected" : ""}
+                </li>
+              ))}
+              <li className="text-white/35">AUTOTASK_ZONE_URL (optional)</li>
             </ul>
           </div>
         )}

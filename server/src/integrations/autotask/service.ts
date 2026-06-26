@@ -11,16 +11,29 @@ import {
 } from "./client.js";
 import type { AutotaskCompanyListItem, AutotaskImportResult } from "./types.js";
 
+export function autotaskEnvDiagnostics() {
+  const username = process.env.AUTOTASK_API_USERNAME?.trim() ?? "";
+  const secret = process.env.AUTOTASK_API_SECRET?.trim() ?? "";
+  const integrationCode = process.env.AUTOTASK_INTEGRATION_CODE?.trim() ?? "";
+  return {
+    hasUsername: Boolean(username),
+    hasSecret: Boolean(secret),
+    hasIntegrationCode: Boolean(integrationCode),
+  };
+}
+
 export function autotaskStatus() {
+  const env = autotaskEnvDiagnostics();
   const config = autotaskConfig();
   if (!config) {
-    return { configured: false as const };
+    return { configured: false as const, env };
   }
 
   return {
     configured: true as const,
     username: maskAutotaskUsername(config.username),
     hasZoneOverride: Boolean(config.zoneUrl),
+    env,
   };
 }
 

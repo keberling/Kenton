@@ -127,10 +127,17 @@ export function unassignPhoto(photoId: string) {
   }).then((r) => parse<Photo>(r));
 }
 
+export interface AutotaskEnvDiagnostics {
+  hasUsername: boolean;
+  hasSecret: boolean;
+  hasIntegrationCode: boolean;
+}
+
 export interface AutotaskStatus {
   configured: boolean;
   username?: string;
   hasZoneOverride?: boolean;
+  env?: AutotaskEnvDiagnostics;
 }
 
 export interface AutotaskCompanyListItem {

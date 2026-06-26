@@ -65,6 +65,8 @@ When Autotask env vars are set, the **Deployments** page shows an **Import clien
 2. Copy the **API tracking identifier** from the user's Security tab into `AUTOTASK_INTEGRATION_CODE`.
 3. Set `AUTOTASK_API_USERNAME` and `AUTOTASK_API_SECRET`, redeploy, then use **Test connection** on the Deployments page.
 
+**Important:** Autotask vars must be on the **Node server process**, not only in a local file the browser reads. For Docker/Coolify, add them in the deployment **Environment Variables** UI (or `env_file: .env` in docker-compose). A `.env` in the project root is loaded automatically on server start. After changing vars, **restart/redeploy** the container.
+
 ## Microsoft SSO (Entra ID)
 
 Kenton supports Microsoft single sign-on so every field upload is attributed to the signed-in operator. When Azure env vars are **not** set, the app works as before with anonymous uploads. When configured, uploads are tied to the Microsoft identity and snapshot on each photo (name, email, job title, department, office).
